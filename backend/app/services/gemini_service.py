@@ -16,17 +16,17 @@ MODEL = "gemini-2.5-flash-native-audio-preview-12-2025"
 
 client = genai.Client(api_key=GEMINI_API_KEY, http_options={'api_version': 'v1alpha'})
 
-# Tool Definition
+# Tool Definitions
 update_patient_data = {
     "name": "update_patient_data",
     "description": "Update patient medical data fields in the realtime form.",
-    "behavior": "NON_BLOCKING", # Allow asynchronous updates
+    "behavior": "NON_BLOCKING",
     "parameters": {
         "type": "OBJECT",
         "properties": {
             "field": {
                 "type": "STRING",
-                "description": "The field to update (e.g., name, age, gender, symptoms, diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
+                "description": "The field to update (e.g., name, age, gender, symptoms, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
             },
             "value": {
                 "type": "STRING", 
@@ -37,7 +37,21 @@ update_patient_data = {
     }
 }
 
-tools = [{"function_declarations": [update_patient_data]}]
+finalize_consultation = {
+    "name": "finalize_consultation",
+    "description": "Signals that the consultation is complete and the record should be committed to the EHR.",
+    "parameters": {
+        "type": "OBJECT",
+        "properties": {
+            "summary": {
+                "type": "STRING",
+                "description": "A very brief summary of the encounter (optional)."
+            }
+        }
+    }
+}
+
+tools = [{"function_declarations": [update_patient_data, finalize_consultation]}]
 
 class GeminiService:
     def __init__(self):
@@ -165,12 +179,27 @@ class GeminiService:
                                     "value": value
                                 })
                                 
-                                # Send response back to Gemini
+                                # Send tool execution results back to Gemini
                                 function_responses.append(types.FunctionResponse(
                                     id=fc.id,
                                     name=fc.name,
                                     response={"result": "ok", "scheduling": "SILENT"},
-                                    
+                                ))
+
+                            elif fc.name == "finalize_consultation":
+                                summary = fc.args.get("summary", "")
+                                print(f"Tool Call: finalize_consultation({summary})")
+                                
+                                # Notify frontend to commit
+                                await websocket.send_json({
+                                    "type": "finalize",
+                                    "summary": summary
+                                })
+                                
+                                function_responses.append(types.FunctionResponse(
+                                    id=fc.id,
+                                    name=fc.name,
+                                    response={"result": "consultation_finalized"},
                                 ))
 
                         # Send tool execution results back to model

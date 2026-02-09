@@ -48,8 +48,10 @@ def save_patient(data: PatientData):
         INSERT INTO patients (
             name, age, gender, chief_complaint, symptoms, 
             temp, bp, pulse, spo2, respiratory_rate,
-            medical_history, allergies, diagnosis, medications
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            medical_history, allergies, 
+            tentative_doctor_diagnosis, initial_llm_diagnosis,
+            medications
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data.name,
         data.age,
@@ -63,7 +65,8 @@ def save_patient(data: PatientData):
         data.vitals.respiratory_rate,
         to_json(data.medical_history),
         to_json(data.allergies),
-        data.diagnosis,
+        data.tentative_doctor_diagnosis,
+        data.initial_llm_diagnosis,
         to_json(data.medications)
     ))
     

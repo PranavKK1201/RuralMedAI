@@ -110,7 +110,24 @@ export function LiveForm({ data }: LiveFormProps) {
                         </div>
                     </div>
 
-                    <InputField label="Tentative Diagnosis" name="diagnosis" register={register} highlight={lastUpdatedField === 'diagnosis'} isTextArea placeholder="AI will generate based on encounter..." />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <InputField
+                            label="Doctor's Tentative Diagnosis"
+                            name="tentative_doctor_diagnosis"
+                            register={register}
+                            highlight={lastUpdatedField === 'tentative_doctor_diagnosis'}
+                            isTextArea
+                            placeholder="Awaiting doctor's clinical input..."
+                        />
+                        <InputField
+                            label="Initial AI Insights"
+                            name="initial_llm_diagnosis"
+                            register={register}
+                            highlight={lastUpdatedField === 'initial_llm_diagnosis'}
+                            isTextArea
+                            placeholder="AI analysis based on symptoms/history..."
+                        />
+                    </div>
                 </div>
             </div>
         </div>

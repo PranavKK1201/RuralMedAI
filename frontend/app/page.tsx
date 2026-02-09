@@ -6,8 +6,9 @@ import { useAudioStream } from '@/hooks/useAudioStream';
 import { LiveForm } from '@/components/LiveForm';
 import { AudioVisualizer } from '@/components/AudioVisualizer';
 import { PatientData } from '@/types';
-import { Mic, Square, Save, Activity, RefreshCw, Database, Settings } from 'lucide-react';
+import { Mic, Square, Save, Activity, RefreshCw, Database, Settings, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 export default function Home() {
     const [patientData, setPatientData] = useState<PatientData>({});
@@ -30,6 +31,9 @@ export default function Home() {
                 else if (['symptoms', 'medications', 'allergies', 'medical_history'].includes(data.field)) {
                     (newData as any)[data.field] = data.value;
                 }
+                else if (['tentative_doctor_diagnosis', 'initial_llm_diagnosis'].includes(data.field)) {
+                    (newData as any)[data.field] = data.value;
+                }
                 else {
                     (newData as any)[data.field] = data.value;
                 }
@@ -38,6 +42,13 @@ export default function Home() {
 
             setLogs(prev => [`Tool Update: ${data.field} = ${JSON.stringify(data.value)}`, ...prev.slice(0, 10)]);
             setLastUpdated(new Date().toLocaleTimeString());
+            return;
+        }
+
+        // Handle Finalize Tool Call
+        if (data.type === 'finalize') {
+            setLogs(prev => [`System: AI signaled consultation end. Committing...`, ...prev.slice(0, 5)]);
+            handleCommit(); // Reuse existing commit logic
             return;
         }
 
@@ -95,6 +106,40 @@ export default function Home() {
         disconnect();
     };
 
+    const [isCommiting, setIsCommiting] = useState(false);
+
+    const handleCommit = async () => {
+        if (!patientData || Object.keys(patientData).length === 0) {
+            alert("No patient data to commit.");
+            return;
+        }
+        setIsCommiting(true);
+        setLogs(prev => ["System: Committing record to EHR database...", ...prev.slice(0, 10)]);
+
+        try {
+            const response = await fetch('http://localhost:8005/api/ehr/commit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patientData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setLogs(prev => [`System: Success! Record committed (ID: ${result.patient_id})`, ...prev.slice(0, 10)]);
+                alert(`Successfully committed to EHR! Patient ID: ${result.patient_id}`);
+            } else {
+                throw new Error(result.detail || 'Failed to commit');
+            }
+        } catch (error) {
+            console.error(error);
+            setLogs(prev => [`System Error: EHR Commit Failed`, ...prev.slice(0, 10)]);
+            alert("Failed to commit to EHR. Check backend connection.");
+        } finally {
+            setIsCommiting(false);
+        }
+    };
+
     return (
         <main className="min-h-screen p-4 md:p-8 space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-700">
             {/* Header */}
@@ -114,6 +159,11 @@ export default function Home() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <Link href="/patients" className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/20 transition-all hover:scale-105 active:scale-95 group">
+                        <FileText className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">Records</span>
+                    </Link>
+
                     <AnimatePresence>
                         {lastUpdated && (
                             <motion.span
@@ -186,10 +236,14 @@ export default function Home() {
                 <MetricSmall label="Session Status" value={isRecording ? "Recording" : "Idle"} sub={isConnected ? "WebSocket Connected" : "Stream Waiting"} icon={<Activity className="w-4 h-4 text-emerald-500" />} />
                 <MetricSmall label="Data Processing" value={logs.length > 0 ? "Active" : "Standby"} sub={`${logs.length} Updates Received`} icon={<RefreshCw className={`w-4 h-4 ${logs.length > 0 ? "animate-spin text-blue-500" : "text-muted-foreground"}`} />} />
 
-                <div className="glass-premium rounded-xl p-5 flex flex-col justify-center gap-2">
-                    <button className="flex items-center justify-center gap-2 px-4 py-2 text-xs font-bold uppercase tracking-widest text-foreground hover:bg-muted/50 rounded-lg border border-border transition-all">
-                        <Save className="w-3 h-3" />
-                        Commit to EHR
+                <div className="glass-premium rounded-xl p-4 flex items-center justify-center transition-all hover:border-primary/20 bg-emerald-950/20 border-emerald-500/10">
+                    <button
+                        onClick={handleCommit}
+                        disabled={isCommiting}
+                        className="w-full h-full min-h-[60px] flex items-center justify-center gap-3 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
+                    >
+                        <Save className={`w-4 h-4 ${isCommiting ? 'animate-spin' : ''}`} />
+                        {isCommiting ? 'Saving...' : 'Commit to EHR'}
                     </button>
                 </div>
             </div>

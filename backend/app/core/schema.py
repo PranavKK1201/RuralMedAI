@@ -25,7 +25,11 @@ class PatientData(BaseModel):
     # History & Diagnosis
     medical_history: List[str] = Field(default_factory=list, description="Past medical conditions")
     allergies: List[str] = Field(default_factory=list, description="Known allergies")
-    diagnosis: Optional[str] = Field(None, description="Doctor's diagnosis")
+    
+    # Diagnosis (Split)
+    tentative_doctor_diagnosis: Optional[str] = Field(None, description="Diagnosis explicitly inferred or stated by the doctor")
+    initial_llm_diagnosis: Optional[str] = Field(None, description="Diagnosis inferred by the AI based on symptoms/history")
+    
     medications: List[str] = Field(default_factory=list, description="Prescribed medications")
 
     # Metadata (Useful for Phase 2 DB storage)
