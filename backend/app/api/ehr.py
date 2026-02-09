@@ -10,6 +10,7 @@ init_db()
 
 @router.post("/commit")
 async def commit_to_ehr(data: PatientData):
+    print(f"DEBUG: API /commit received: {data}")
     try:
         patient_id = save_patient(data)
         return {"status": "success", "message": "Patient data committed to EHR", "patient_id": patient_id}

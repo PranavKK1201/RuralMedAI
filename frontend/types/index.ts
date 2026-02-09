@@ -3,7 +3,6 @@ export interface Vitals {
     blood_pressure?: string;
     pulse?: number;
     spo2?: number;
-    respiratory_rate?: number;
 }
 
 export interface PatientData {
@@ -15,6 +14,7 @@ export interface PatientData {
     vitals?: Vitals;
     medical_history?: string[];
     allergies?: string[];
-    diagnosis?: string;
+    tentative_doctor_diagnosis?: string;
+    initial_llm_diagnosis?: string;
     medications?: string[];
 }

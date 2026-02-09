@@ -64,6 +64,7 @@ export function LiveForm({ data }: LiveFormProps) {
                         <InputField label="Age" name="age" register={register} highlight={lastUpdatedField === 'age'} placeholder="--" />
                         <InputField label="Gender" name="gender" register={register} highlight={lastUpdatedField === 'gender'} placeholder="--" />
                     </div>
+                    <InputField label="Chief Complaint" name="chief_complaint" register={register} highlight={lastUpdatedField === 'chief_complaint'} isTextArea placeholder="Reason for seeking care..." />
                 </div>
 
                 {/* Vitals Summary */}
@@ -80,37 +81,19 @@ export function LiveForm({ data }: LiveFormProps) {
                 </div>
 
                 {/* Clinical Notes & Observations */}
-                <div className="md:col-span-2 space-y-6">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-4">
-                        <Activity className="w-3 h-3" /> Clinical Observations
+                <div className="md:col-span-2 space-y-8">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-4 border-b border-border/50 pb-2">
+                        <Activity className="w-3 h-3" /> Professional Findings
                     </div>
 
-                    <div className="space-y-3">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Subjective Symptoms</label>
-                        <div className="p-4 bg-muted/10 min-h-[80px] rounded-xl border border-border/50 shadow-inner group transition-all hover:bg-muted/20">
-                            <AnimatePresence mode="popLayout">
-                                {Array.isArray(data.symptoms) && data.symptoms.length ? (
-                                    <div className="flex flex-wrap gap-2">
-                                        {data.symptoms.map(s => (
-                                            <motion.span
-                                                key={s}
-                                                initial={{ scale: 0.8, opacity: 0 }}
-                                                animate={{ scale: 1, opacity: 1 }}
-                                                exit={{ scale: 0.8, opacity: 0 }}
-                                                className="inline-flex items-center px-3 py-1 rounded-lg text-xs font-bold bg-primary/20 text-primary border border-primary/30"
-                                            >
-                                                {s}
-                                            </motion.span>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <span className="text-xs text-muted-foreground/40 italic font-medium">Listening for patient complaints...</span>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <ListSection title="Subjective Symptoms" items={data.symptoms} placeholder="Listening for patient complaints..." />
+                        <ListSection title="Current Medications" items={data.medications} placeholder="Identify current regimen..." color="emerald" />
+                        <ListSection title="Known Allergies" items={data.allergies} placeholder="Scan for drug/food reactions..." color="rose" />
+                        <ListSection title="Medical History" items={data.medical_history} placeholder="Past conditions/surgeries..." color="blue" />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
                         <InputField
                             label="Doctor's Tentative Diagnosis"
                             name="tentative_doctor_diagnosis"
@@ -184,4 +167,41 @@ function VitalField({ label, name, register, highlight, unit }: any) {
             </div>
         </div>
     )
+}
+
+function ListSection({ title, items, placeholder, color = "primary" }: any) {
+    const list = Array.isArray(items) ? items : [];
+    const colors: any = {
+        primary: "bg-primary/20 text-primary border-primary/30",
+        emerald: "bg-emerald-500/20 text-emerald-500 border-emerald-500/30",
+        rose: "bg-rose-500/20 text-rose-500 border-rose-500/30",
+        blue: "bg-blue-500/20 text-blue-500 border-blue-500/30"
+    };
+
+    return (
+        <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{title}</label>
+            <div className="p-4 bg-muted/10 min-h-[80px] rounded-xl border border-border/50 shadow-inner group transition-all hover:bg-muted/20">
+                <AnimatePresence mode="popLayout">
+                    {list.length ? (
+                        <div className="flex flex-wrap gap-2">
+                            {list.map(s => (
+                                <motion.span
+                                    key={s}
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.8, opacity: 0 }}
+                                    className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-bold border ${colors[color]}`}
+                                >
+                                    {s}
+                                </motion.span>
+                            ))}
+                        </div>
+                    ) : (
+                        <span className="text-xs text-muted-foreground/40 italic font-medium">{placeholder}</span>
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
+    );
 }

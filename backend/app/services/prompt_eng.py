@@ -23,13 +23,14 @@ Action: (Tool Call: age=25)
 
 ### SUPPORTED FIELDS
 - "name", "age", "gender"
-- "chief_complaint", "symptoms" (list), "medical_history" (list), "allergies" (list), "medications" (list)
+- "chief_complaint": A brief description of why the patient is seeking care.
+- "symptoms" (list): Specific symptoms mentioned (e.g., ["fever", "cough"]).
+- "medical_history" (list): Past medical conditions (e.g., ["hypertension", "diabetes"]).
+- "allergies" (list): Known allergies (e.g., ["penicillin", "peanuts"]).
+- "medications" (list): Current medications being taken (e.g., ["metformin"]).
 - "vitals.temperature", "vitals.blood_pressure", "vitals.pulse", "vitals.spo2"
 
 ### DIAGNOSIS SPLIT (CRITICAL)
 1. **tentative_doctor_diagnosis**: Use this IF AND ONLY IF the doctor explicitly mentions a diagnosis or says something like "I think you have X".
 2. **initial_llm_diagnosis**: Use this to provide your OWN inference of what the patient might have, based on the documented symptoms and history. Update this as the conversation progresses.
-
-### SESSION FINALIZATION
-When the doctor says something indicating the end of the session (e.g., "Take care", "See you next time", "We are done for today", "Goodbye"), call the `finalize_consultation` tool. This will save the record to the EHR.
 """

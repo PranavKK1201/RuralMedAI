@@ -24,11 +24,22 @@ export default function Home() {
         if (data.type === 'update') {
             setPatientData(prev => {
                 const newData = { ...prev };
-                if (['temperature', 'blood_pressure', 'pulse', 'spo2'].includes(data.field)) {
+
+                // Handle nested vitals updates (e.g. "vitals.temperature")
+                if (data.field.startsWith('vitals.')) {
+                    const vitalField = data.field.split('.')[1];
+                    if (['temperature', 'blood_pressure', 'pulse', 'spo2'].includes(vitalField)) {
+                        if (!newData.vitals) newData.vitals = {};
+                        (newData.vitals as any)[vitalField] = data.value;
+                    }
+                }
+                // Handle direct vitals updates (legacy/fallback)
+                else if (['temperature', 'blood_pressure', 'pulse', 'spo2'].includes(data.field)) {
                     if (!newData.vitals) newData.vitals = {};
                     (newData.vitals as any)[data.field] = data.value;
                 }
-                else if (['symptoms', 'medications', 'allergies', 'medical_history'].includes(data.field)) {
+                // Handle other fields
+                else if (['symptoms', 'medications', 'allergies', 'medical_history', 'chief_complaint'].includes(data.field)) {
                     (newData as any)[data.field] = data.value;
                 }
                 else if (['tentative_doctor_diagnosis', 'initial_llm_diagnosis'].includes(data.field)) {
@@ -42,13 +53,6 @@ export default function Home() {
 
             setLogs(prev => [`Tool Update: ${data.field} = ${JSON.stringify(data.value)}`, ...prev.slice(0, 10)]);
             setLastUpdated(new Date().toLocaleTimeString());
-            return;
-        }
-
-        // Handle Finalize Tool Call
-        if (data.type === 'finalize') {
-            setLogs(prev => [`System: AI signaled consultation end. Committing...`, ...prev.slice(0, 5)]);
-            handleCommit(); // Reuse existing commit logic
             return;
         }
 
@@ -115,6 +119,8 @@ export default function Home() {
         }
         setIsCommiting(true);
         setLogs(prev => ["System: Committing record to EHR database...", ...prev.slice(0, 10)]);
+
+        console.log("DEBUG: Committing patientData:", patientData);
 
         try {
             const response = await fetch('http://localhost:8005/api/ehr/commit', {
