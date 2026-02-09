@@ -90,7 +90,8 @@ export function LiveForm({ data }: LiveFormProps) {
                         <ListSection title="Subjective Symptoms" items={data.symptoms} placeholder="Listening for patient complaints..." />
                         <ListSection title="Current Medications" items={data.medications} placeholder="Identify current regimen..." color="emerald" />
                         <ListSection title="Known Allergies" items={data.allergies} placeholder="Scan for drug/food reactions..." color="rose" />
-                        <ListSection title="Medical History" items={data.medical_history} placeholder="Past conditions/surgeries..." color="blue" />
+                        <ListSection title="Personal History" items={data.medical_history} placeholder="Past conditions/surgeries..." color="blue" />
+                        <ListSection title="Family History" items={data.family_history} placeholder="Relatives' conditions..." color="primary" />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">

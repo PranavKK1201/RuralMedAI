@@ -17,15 +17,16 @@ def init_db():
         CREATE TABLE IF NOT EXISTS patients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
-            age INTEGER,
+            age TEXT,
             gender TEXT,
             chief_complaint TEXT,
             symptoms TEXT, -- JSON
             temp TEXT,
             bp TEXT,
-            pulse INTEGER,
-            spo2 INTEGER,
+            pulse TEXT,
+            spo2 TEXT,
             medical_history TEXT, -- JSON
+            family_history TEXT, -- JSON
             allergies TEXT, -- JSON
             tentative_doctor_diagnosis TEXT,
             initial_llm_diagnosis TEXT,
@@ -37,9 +38,13 @@ def init_db():
     # Migration for existing databases
     try:
         cursor.execute("ALTER TABLE patients ADD COLUMN tentative_doctor_diagnosis TEXT")
+    except sqlite3.OperationalError: pass
+    try:
         cursor.execute("ALTER TABLE patients ADD COLUMN initial_llm_diagnosis TEXT")
-    except sqlite3.OperationalError:
-        pass
+    except sqlite3.OperationalError: pass
+    try:
+        cursor.execute("ALTER TABLE patients ADD COLUMN family_history TEXT")
+    except sqlite3.OperationalError: pass
 
     conn.commit()
     conn.close()
@@ -61,10 +66,10 @@ def save_patient(data: PatientData):
         INSERT INTO patients (
             name, age, gender, chief_complaint, symptoms, 
             temp, bp, pulse, spo2,
-            medical_history, allergies, 
+            medical_history, family_history, allergies, 
             tentative_doctor_diagnosis, initial_llm_diagnosis,
             medications
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data.name,
         data.age,
@@ -76,6 +81,7 @@ def save_patient(data: PatientData):
         v.pulse if v else None,
         v.spo2 if v else None,
         to_json(data.medical_history),
+        to_json(data.family_history),
         to_json(data.allergies),
         data.tentative_doctor_diagnosis,
         data.initial_llm_diagnosis,
@@ -97,7 +103,7 @@ def get_all_patients():
     patients = []
     for row in rows:
         p = dict(row)
-        for json_field in ['symptoms', 'medical_history', 'allergies', 'medications']:
+        for json_field in ['symptoms', 'medical_history', 'family_history', 'allergies', 'medications']:
             if p.get(json_field):
                 try:
                     p[json_field] = json.loads(p[json_field])

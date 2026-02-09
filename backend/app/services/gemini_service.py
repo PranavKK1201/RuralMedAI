@@ -26,7 +26,7 @@ update_patient_data = {
         "properties": {
             "field": {
                 "type": "STRING",
-                "description": "The field to update (e.g., name, age, gender, chief_complaint, symptoms, medical_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
+                "description": "The field to update (e.g., name, age, gender, chief_complaint, symptoms, medical_history (patient past conditions), family_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
             },
             "value": {
                 "type": "STRING", 
@@ -152,7 +152,7 @@ class GeminiService:
                                             value = json.loads(value)
                                         except json.JSONDecodeError:
                                             pass
-                                    elif field in ["symptoms", "medications", "allergies", "medical_history"]:
+                                    elif field in ["symptoms", "medications", "allergies", "medical_history", "family_history"]:
                                         # Handle comma-separated list strings
                                         value = [item.strip() for item in value.split(",")]
 

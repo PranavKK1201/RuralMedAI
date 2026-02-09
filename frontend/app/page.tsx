@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import { useAudioStream } from '@/hooks/useAudioStream';
 import { LiveForm } from '@/components/LiveForm';
@@ -12,14 +12,25 @@ import Link from 'next/link';
 
 export default function Home() {
     const [patientData, setPatientData] = useState<PatientData>({});
-    const [logs, setLogs] = useState<string[]>([]);
+    const [transcript, setTranscript] = useState<any[]>([]);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
     // Audio Device Handling
     const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
 
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll transcript
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [transcript]);
+
     const handleMessage = useCallback((data: any) => {
+        const now = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
         // Handle Direct Tool Updates from Backend
         if (data.type === 'update') {
             setPatientData(prev => {
@@ -39,7 +50,7 @@ export default function Home() {
                     (newData.vitals as any)[data.field] = data.value;
                 }
                 // Handle other fields
-                else if (['symptoms', 'medications', 'allergies', 'medical_history', 'chief_complaint'].includes(data.field)) {
+                else if (['symptoms', 'medications', 'allergies', 'medical_history', 'family_history', 'chief_complaint'].includes(data.field)) {
                     (newData as any)[data.field] = data.value;
                 }
                 else if (['tentative_doctor_diagnosis', 'initial_llm_diagnosis'].includes(data.field)) {
@@ -51,15 +62,42 @@ export default function Home() {
                 return newData;
             });
 
-            setLogs(prev => [`Tool Update: ${data.field} = ${JSON.stringify(data.value)}`, ...prev.slice(0, 10)]);
-            setLastUpdated(new Date().toLocaleTimeString());
+            // Add Tool Call to Transcript
+            setTranscript(prev => [
+                ...prev,
+                {
+                    id: Math.random().toString(36).substring(7),
+                    type: 'tool',
+                    toolInfo: { field: data.field, value: data.value },
+                    timestamp: now
+                }
+            ]);
+            setLastUpdated(now);
             return;
         }
 
         // Handle Standard Text Content
         if (data.type === 'content' && data.text) {
-            const text = data.text;
-            setLogs(prev => [`Gemini: ${text.substring(0, 50)}...`, ...prev.slice(0, 10)]);
+            setTranscript(prev => {
+                const lastItem = prev[prev.length - 1];
+                // If last item is text, append to it
+                if (lastItem && lastItem.type === 'text') {
+                    return [
+                        ...prev.slice(0, -1),
+                        { ...lastItem, content: (lastItem.content || '') + data.text }
+                    ];
+                }
+                // Otherwise start new text block
+                return [
+                    ...prev,
+                    {
+                        id: Math.random().toString(36).substring(7),
+                        type: 'text',
+                        content: data.text,
+                        timestamp: now
+                    }
+                ];
+            });
         }
     }, []);
 
@@ -118,7 +156,8 @@ export default function Home() {
             return;
         }
         setIsCommiting(true);
-        setLogs(prev => ["System: Committing record to EHR database...", ...prev.slice(0, 10)]);
+        const now = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setTranscript(prev => [...prev, { id: 'sys-' + Date.now(), type: 'text', content: 'System: Committing record to EHR database...', timestamp: now }]);
 
         console.log("DEBUG: Committing patientData:", patientData);
 
@@ -132,14 +171,14 @@ export default function Home() {
             const result = await response.json();
 
             if (response.ok) {
-                setLogs(prev => [`System: Success! Record committed (ID: ${result.patient_id})`, ...prev.slice(0, 10)]);
+                setTranscript(prev => [...prev, { id: 'sys-success-' + Date.now(), type: 'text', content: `System: Success! Record committed (ID: ${result.patient_id})`, timestamp: now }]);
                 alert(`Successfully committed to EHR! Patient ID: ${result.patient_id}`);
             } else {
                 throw new Error(result.detail || 'Failed to commit');
             }
         } catch (error) {
             console.error(error);
-            setLogs(prev => [`System Error: EHR Commit Failed`, ...prev.slice(0, 10)]);
+            setTranscript(prev => [...prev, { id: 'sys-err-' + Date.now(), type: 'text', content: `System Error: EHR Commit Failed`, timestamp: now }]);
             alert("Failed to commit to EHR. Check backend connection.");
         } finally {
             setIsCommiting(false);
@@ -240,7 +279,7 @@ export default function Home() {
                 </div>
 
                 <MetricSmall label="Session Status" value={isRecording ? "Recording" : "Idle"} sub={isConnected ? "WebSocket Connected" : "Stream Waiting"} icon={<Activity className="w-4 h-4 text-emerald-500" />} />
-                <MetricSmall label="Data Processing" value={logs.length > 0 ? "Active" : "Standby"} sub={`${logs.length} Updates Received`} icon={<RefreshCw className={`w-4 h-4 ${logs.length > 0 ? "animate-spin text-blue-500" : "text-muted-foreground"}`} />} />
+                <MetricSmall label="Data Processing" value={transcript.length > 0 ? "Active" : "Standby"} sub={`${transcript.length} Events Captured`} icon={<RefreshCw className={`w-4 h-4 ${transcript.length > 0 ? "animate-spin text-blue-500" : "text-muted-foreground"}`} />} />
 
                 <div className="glass-premium rounded-xl p-4 flex items-center justify-center transition-all hover:border-primary/20 bg-emerald-950/20 border-emerald-500/10">
                     <button
@@ -263,31 +302,55 @@ export default function Home() {
                     </div>
                 </div>
 
-                {/* Right: Insights & Logs */}
+                {/* Right: Insights & Transcript */}
                 <div className="space-y-6">
                     <div className="glass-premium rounded-xl p-6 h-[500px] flex flex-col shadow-sm">
                         <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Processing Pipeline</h3>
+                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Consultation Stream</h3>
                             <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                         </div>
 
-                        <div className="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin">
-                            {logs.length === 0 && (
+                        <div
+                            ref={scrollRef}
+                            className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scroll-smooth"
+                        >
+                            {transcript.length === 0 && (
                                 <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-border rounded-lg bg-muted/5">
                                     <Database className="w-8 h-8 text-muted-foreground/20 mb-4" />
                                     <p className="text-xs text-muted-foreground font-medium italic">Awaiting clinical data stream...</p>
                                 </div>
                             )}
                             <AnimatePresence initial={false}>
-                                {logs.map((log, i) => (
+                                {transcript.map((item) => (
                                     <motion.div
-                                        key={i + log}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        className="p-3 bg-muted/30 rounded-lg border-l-2 border-primary/50 text-[11px] font-mono text-foreground/80 leading-relaxed break-all"
+                                        key={item.id}
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="transition-all"
                                     >
-                                        <span className="text-primary/60 mr-2">[{new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}]</span>
-                                        {log}
+                                        {item.type === 'text' ? (
+                                            <div className="space-y-1">
+                                                <p className="text-sm text-foreground/90 leading-relaxed font-medium whitespace-pre-wrap">
+                                                    {item.content}
+                                                </p>
+                                                <span className="text-[9px] text-muted-foreground font-mono uppercase">{item.timestamp}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="my-4 py-3 px-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between group hover:bg-primary/10 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                        <Database className="w-4 h-4 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Extraction Applied</p>
+                                                        <p className="text-xs font-mono font-bold text-foreground/70">
+                                                            {item.toolInfo.field} → <span className="text-foreground">{JSON.stringify(item.toolInfo.value)}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-[9px] text-muted-foreground font-mono">{item.timestamp}</span>
+                                            </div>
+                                        )}
                                     </motion.div>
                                 ))}
                             </AnimatePresence>

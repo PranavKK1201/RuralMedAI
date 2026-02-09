@@ -25,7 +25,8 @@ Action: (Tool Call: age=25)
 - "name", "age", "gender"
 - "chief_complaint": A brief description of why the patient is seeking care.
 - "symptoms" (list): Specific symptoms mentioned (e.g., ["fever", "cough"]).
-- "medical_history" (list): Past medical conditions (e.g., ["hypertension", "diabetes"]).
+- "medical_history" (list): Patient's past medical conditions (e.g., ["hypertension", "diabetes"]).
+- "family_history" (list): Medical conditions of biological relatives (e.g., ["family history of heart disease"]).
 - "allergies" (list): Known allergies (e.g., ["penicillin", "peanuts"]).
 - "medications" (list): Current medications being taken (e.g., ["metformin"]).
 - "vitals.temperature", "vitals.blood_pressure", "vitals.pulse", "vitals.spo2"

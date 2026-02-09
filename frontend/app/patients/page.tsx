@@ -93,7 +93,7 @@ export default function PatientsPage() {
                                         <div><span className="text-muted-foreground">BP:</span> <span className="font-mono font-bold">{patient.bp || "--"}</span></div>
                                         <div><span className="text-muted-foreground">HR:</span> <span className="font-mono font-bold">{patient.pulse || "--"}</span></div>
                                         <div><span className="text-muted-foreground">Temp:</span> <span className="font-mono font-bold">{patient.temp || "--"}</span></div>
-                                        <div><span className="text-muted-foreground">SpO2:</span> <span className="font-mono font-bold">{patient.spo2 || "--"}</span>%</div>
+                                        <div><span className="text-muted-foreground">SpO2:</span> <span className="font-mono font-bold">{patient.spo2 || "--"}</span></div>
                                     </div>
                                 </div>
 
@@ -200,7 +200,8 @@ export default function PatientsPage() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <ListSection title="Symptoms" items={selectedPatient.symptoms} />
                                             <ListSection title="Medications" items={selectedPatient.medications} />
-                                            <ListSection title="History" items={selectedPatient.medical_history} />
+                                            <ListSection title="Personal History" items={selectedPatient.medical_history} />
+                                            <ListSection title="Family History" items={selectedPatient.family_history} />
                                             <ListSection title="Allergies" items={selectedPatient.allergies} />
                                         </div>
                                     </div>
