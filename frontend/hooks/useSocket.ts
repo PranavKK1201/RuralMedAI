@@ -1,0 +1,57 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
+
+const WS_URL = 'ws://localhost:8000/ws/live-consultation';
+
+export const useSocket = (onMessageReceived: (data: any) => void) => {
+    const [isConnected, setIsConnected] = useState(false);
+    const socketRef = useRef<WebSocket | null>(null);
+
+    const connect = useCallback(() => {
+        if (socketRef.current?.readyState === WebSocket.OPEN) return;
+
+        const ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+            console.log('✅ Connected to backend');
+            setIsConnected(true);
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                onMessageReceived(data);
+            } catch (e) {
+                console.error("Error parsing WS message:", e);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('❌ Disconnected from backend');
+            setIsConnected(false);
+        };
+
+        socketRef.current = ws;
+    }, [onMessageReceived]);
+
+    const disconnect = useCallback(() => {
+        if (socketRef.current) {
+            socketRef.current.close();
+            socketRef.current = null;
+        }
+    }, []);
+
+    const sendMessage = useCallback((data: any) => {
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify(data));
+        }
+    }, []);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (socketRef.current) socketRef.current.close();
+        }
+    }, [])
+
+    return { isConnected, connect, disconnect, sendMessage };
+};

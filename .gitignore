@@ -1,0 +1,23 @@
+# Environment variables
+.env
+.env.local
+
+# Node.js
+node_modules/
+dist/
+build/
+.next/
+coverage/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
