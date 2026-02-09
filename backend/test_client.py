@@ -4,7 +4,7 @@ import json
 import base64
 
 # Configuration
-URI = "ws://localhost:8000/ws/live-consultation"
+URI = "ws://localhost:8005/ws/live-consultation"
 
 async def test_connection():
     print(f"Connecting to {URI}...")

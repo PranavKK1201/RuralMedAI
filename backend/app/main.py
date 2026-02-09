@@ -14,7 +14,10 @@ app = FastAPI(title="RuralMedAI Backend")
 
 # Include API Routes
 from app.api.routes import router as api_router
+from app.api.ehr import router as ehr_router
+
 app.include_router(api_router, prefix="/api")
+app.include_router(ehr_router, prefix="/api/ehr")
 
 # CORS Configuration
 # Allow requests from your frontend (usually localhost:3000 during dev)
