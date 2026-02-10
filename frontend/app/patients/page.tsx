@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Activity, Calendar, FileText, Search, ClipboardList } from 'lucide-react';
+import { ArrowLeft, User, Activity, Calendar, FileText, Search, ClipboardList, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PatientsPage() {
@@ -10,9 +10,10 @@ export default function PatientsPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
+    const [patientToDelete, setPatientToDelete] = useState<any | null>(null);
 
     useEffect(() => {
-        fetch('http://localhost:8005/api/ehr/patients')
+        fetch('http://localhost:8000/api/ehr/patients')
             .then(res => res.json())
             .then(data => {
                 setPatients(data);
@@ -29,6 +30,28 @@ export default function PatientsPage() {
         p.tentative_doctor_diagnosis?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.initial_llm_diagnosis?.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    const deletePatient = async () => {
+        if (!patientToDelete) return;
+
+        try {
+            const res = await fetch(`http://localhost:8000/api/ehr/patients/${patientToDelete.id}`, {
+                method: 'DELETE',
+            });
+            if (res.ok) {
+                setPatients(prev => prev.filter(p => p.id !== patientToDelete.id));
+                setPatientToDelete(null);
+                if (selectedPatient?.id === patientToDelete.id) {
+                    setSelectedPatient(null);
+                }
+            } else {
+                alert("Failed to delete patient");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Error deleting patient");
+        }
+    };
 
     return (
         <main className="min-h-screen p-4 md:p-8 space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-700">
@@ -111,7 +134,27 @@ export default function PatientsPage() {
                                         <Calendar className="w-3 h-3" />
                                         {new Date(patient.created_at).toLocaleDateString()}
                                     </div>
-                                    <button className="text-primary font-bold hover:underline" onClick={() => setSelectedPatient(patient)}>View Details</button>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            className="text-primary font-bold hover:underline"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedPatient(patient);
+                                            }}
+                                        >
+                                            View Details
+                                        </button>
+                                        <button
+                                            className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setPatientToDelete(patient);
+                                            }}
+                                            title="Delete Record"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </motion.div>
@@ -206,6 +249,44 @@ export default function PatientsPage() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {patientToDelete && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+                        >
+                            <div className="space-y-2 text-center">
+                                <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mx-auto">
+                                    <Trash2 className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-lg font-bold">Delete Patient Record?</h3>
+                                <p className="text-sm text-muted-foreground">
+                                    Are you sure you want to delete the record for <span className="font-bold text-foreground">{patientToDelete.name}</span>? This action cannot be undone.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={() => setPatientToDelete(null)}
+                                    className="px-4 py-2 rounded-lg border border-border bg-background hover:bg-muted font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={deletePatient}
+                                    className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 font-bold transition-colors"
+                                >
+                                    Delete
+                                </button>
                             </div>
                         </motion.div>
                     </div>

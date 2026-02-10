@@ -6,7 +6,7 @@ import { useAudioStream } from '@/hooks/useAudioStream';
 import { LiveForm } from '@/components/LiveForm';
 import { AudioVisualizer } from '@/components/AudioVisualizer';
 import { PatientData } from '@/types';
-import { Mic, Square, Save, Activity, RefreshCw, Database, Settings, FileText } from 'lucide-react';
+import { Mic, Square, Save, Activity, RefreshCw, Database, Settings, FileText, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 
@@ -162,7 +162,7 @@ export default function Home() {
         console.log("DEBUG: Committing patientData:", patientData);
 
         try {
-            const response = await fetch('http://localhost:8005/api/ehr/commit', {
+            const response = await fetch('http://localhost:8000/api/ehr/commit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(patientData)
@@ -186,203 +186,192 @@ export default function Home() {
     };
 
     return (
-        <main className="min-h-screen p-4 md:p-8 space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-700">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                <div className="space-y-1">
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="flex items-center gap-2"
-                    >
-                        <Database className="w-6 h-6 text-primary" />
-                        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent font-outfit">
-                            RuralMed AI
-                        </h1>
-                    </motion.div>
-                    <p className="text-sm text-muted-foreground font-medium">Professional AI Medical Scribe • Secure Consultation</p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <Link href="/patients" className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/20 transition-all hover:scale-105 active:scale-95 group">
-                        <FileText className="w-3.5 h-3.5" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">Records</span>
-                    </Link>
-
-                    <AnimatePresence>
-                        {lastUpdated && (
-                            <motion.span
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0 }}
-                                className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest hidden sm:block"
-                            >
-                                Last Update: {lastUpdated}
-                            </motion.span>
-                        )}
-                    </AnimatePresence>
-
-                    <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all duration-500 ${isConnected
-                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
-                        : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
-                        }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
-                        {isConnected ? 'System Online' : 'System Offline'}
-                    </div>
-                </div>
-            </div>
-
-            {/* Controls & Metrics Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-                <div className="lg:col-span-1 glass-premium rounded-xl p-6 flex flex-col justify-between group transition-all hover:border-primary/20">
-                    <div>
-                        <div className="flex items-center justify-between mb-4">
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Voice Capture</p>
-                            <Settings className="w-3 h-3 text-muted-foreground" />
+        <main className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+            {/* 1. Header & Toolbar - Fixed Top */}
+            <header className="flex-none border-b border-border/40 bg-background/80 backdrop-blur-md z-50">
+                <div className="flex items-center justify-between px-4 py-3">
+                    {/* Brand */}
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-primary/10">
+                            <Database className="w-5 h-5 text-primary" />
                         </div>
+                        <div>
+                            <h1 className="text-lg font-bold font-outfit tracking-tight">RuralMed AI</h1>
+                            <div className="flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Secure Scribe Active</span>
+                            </div>
+                        </div>
+                    </div>
 
-                        {/* Device Selector */}
+                    {/* Central Toolbar */}
+                    <div className="flex-1 max-w-2xl mx-8 hidden md:flex items-center gap-4 bg-muted/30 p-1.5 rounded-xl border border-border/50">
                         <select
-                            className="w-full mb-4 bg-background/50 border border-border text-xs rounded-md p-2 focus:ring-1 focus:ring-primary outline-none"
+                            className="bg-transparent text-xs font-medium text-foreground/80 focus:outline-none cursor-pointer hover:text-foreground transition-colors max-w-[200px]"
                             value={selectedDeviceId}
                             onChange={(e) => setSelectedDeviceId(e.target.value)}
                             disabled={isRecording}
                         >
                             {audioDevices.map(device => (
                                 <option key={device.deviceId} value={device.deviceId}>
-                                    {device.label || `Microphone ${device.deviceId.slice(0, 5)}...`}
+                                    {device.label || `Mic ${device.deviceId.slice(0, 5)}...`}
                                 </option>
                             ))}
                         </select>
-                    </div>
+                        <div className="h-4 w-px bg-border" />
 
-                    <div className="space-y-4">
+                        <div className="flex-1">
+                            <AudioVisualizer isRecording={isRecording} />
+                        </div>
+
+                        <div className="h-4 w-px bg-border" />
+
                         {!isRecording ? (
                             <button
                                 onClick={handleStart}
-                                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/20"
+                                className="flex items-center gap-2 px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold hover:opacity-90 transition-all shadow-sm"
                             >
-                                <Mic className="w-4 h-4" />
-                                Begin Consultation
+                                <Mic className="w-3.5 h-3.5" />
+                                Start Protocol
                             </button>
                         ) : (
                             <button
                                 onClick={handleStop}
-                                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-rose-600 text-white rounded-lg font-bold transition-all hover:bg-rose-700 shadow-lg shadow-rose-600/20"
+                                className="flex items-center gap-2 px-4 py-1.5 bg-destructive text-destructive-foreground rounded-lg text-xs font-bold hover:opacity-90 transition-all shadow-sm animate-pulse"
                             >
-                                <Square className="w-4 h-4 fill-current" />
-                                End Session
+                                <Square className="w-3.5 h-3.5 fill-current" />
+                                End Protocol
                             </button>
                         )}
-                        <AudioVisualizer isRecording={isRecording} />
                     </div>
-                </div>
 
-                <MetricSmall label="Session Status" value={isRecording ? "Recording" : "Idle"} sub={isConnected ? "WebSocket Connected" : "Stream Waiting"} icon={<Activity className="w-4 h-4 text-emerald-500" />} />
-                <MetricSmall label="Data Processing" value={transcript.length > 0 ? "Active" : "Standby"} sub={`${transcript.length} Events Captured`} icon={<RefreshCw className={`w-4 h-4 ${transcript.length > 0 ? "animate-spin text-blue-500" : "text-muted-foreground"}`} />} />
-
-                <div className="glass-premium rounded-xl p-4 flex items-center justify-center transition-all hover:border-primary/20 bg-emerald-950/20 border-emerald-500/10">
-                    <button
-                        onClick={handleCommit}
-                        disabled={isCommiting}
-                        className="w-full h-full min-h-[60px] flex items-center justify-center gap-3 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
-                    >
-                        <Save className={`w-4 h-4 ${isCommiting ? 'animate-spin' : ''}`} />
-                        {isCommiting ? 'Saving...' : 'Commit to EHR'}
-                    </button>
-                </div>
-            </div>
-
-            {/* Main Content Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left: Interactive Form */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="glass-premium rounded-2xl p-1 overflow-hidden">
-                        <LiveForm data={patientData} />
-                    </div>
-                </div>
-
-                {/* Right: Insights & Transcript */}
-                <div className="space-y-6">
-                    <div className="glass-premium rounded-xl p-6 h-[500px] flex flex-col shadow-sm">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Consultation Stream</h3>
-                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                    {/* Right Actions */}
+                    <div className="flex items-center gap-3">
+                        <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[10px] font-bold uppercase tracking-widest ${isConnected ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                            }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                            {isConnected ? 'Online' : 'Offline'}
                         </div>
 
-                        <div
-                            ref={scrollRef}
-                            className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scroll-smooth"
-                        >
-                            {transcript.length === 0 && (
-                                <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-border rounded-lg bg-muted/5">
-                                    <Database className="w-8 h-8 text-muted-foreground/20 mb-4" />
-                                    <p className="text-xs text-muted-foreground font-medium italic">Awaiting clinical data stream...</p>
-                                </div>
-                            )}
-                            <AnimatePresence initial={false}>
-                                {transcript.map((item) => (
-                                    <motion.div
-                                        key={item.id}
-                                        initial={{ opacity: 0, y: 5 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="transition-all"
-                                    >
-                                        {item.type === 'text' ? (
-                                            <div className="space-y-1">
-                                                <p className="text-sm text-foreground/90 leading-relaxed font-medium whitespace-pre-wrap">
-                                                    {item.content}
-                                                </p>
-                                                <span className="text-[9px] text-muted-foreground font-mono uppercase">{item.timestamp}</span>
-                                            </div>
-                                        ) : (
-                                            <div className="my-4 py-3 px-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between group hover:bg-primary/10 transition-colors">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                                        <Database className="w-4 h-4 text-primary" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Extraction Applied</p>
-                                                        <p className="text-xs font-mono font-bold text-foreground/70">
-                                                            {item.toolInfo.field} → <span className="text-foreground">{JSON.stringify(item.toolInfo.value)}</span>
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <span className="text-[9px] text-muted-foreground font-mono">{item.timestamp}</span>
-                                            </div>
-                                        )}
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
-                        </div>
+                        <Link href="/patients" className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                            <FileText className="w-5 h-5" />
+                            <span className="text-xs font-bold uppercase tracking-widest hidden md:inline-block">History</span>
+                        </Link>
                     </div>
+                </div>
+            </header>
 
-                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex gap-4">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+            {/* 2. Main Workspace - Fluid Split Layout */}
+            <div className="flex-1 flex overflow-hidden">
+
+                {/* Left Panel: Clinical Form (65%) */}
+                <div className="flex-1 flex flex-col min-w-0 border-r border-border/40 relative">
+                    {/* Form Header */}
+                    <div className="flex-none p-4 flex items-center justify-between border-b border-border/40 bg-muted/10">
+                        <div className="flex items-center gap-2">
                             <Activity className="w-4 h-4 text-primary" />
+                            <h2 className="text-sm font-bold uppercase tracking-widest text-foreground/80">Clinical Intake Sheet</h2>
                         </div>
-                        <div>
-                            <p className="text-[10px] text-foreground font-bold uppercase tracking-widest">Security Alert</p>
-                            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">All data is encrypted in transit and at rest. HIPAA compliant processing active.</p>
+                        <AnimatePresence>
+                            {lastUpdated && (
+                                <motion.span
+                                    initial={{ opacity: 0, x: 10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-md font-mono"
+                                >
+                                    UPDATED: {lastUpdated}
+                                </motion.span>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Scrollable Form Content */}
+                    <div className="flex-1 overflow-y-auto p-6 lg:p-10 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+                        <div className="max-w-4xl mx-auto space-y-8">
+                            <LiveForm data={patientData} />
+
+                            <div className="h-20" /> {/* Spacer */}
                         </div>
                     </div>
+
+                    {/* Floating Commit Button */}
+                    <div className="absolute bottom-6 right-6 z-10">
+                        <button
+                            onClick={handleCommit}
+                            disabled={isCommiting}
+                            className="group flex items-center gap-2 pl-4 pr-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full font-bold shadow-lg shadow-emerald-900/20 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isCommiting ? (
+                                <RefreshCw className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <Save className="w-5 h-5" />
+                            )}
+                            <span className="uppercase tracking-wide text-xs">Commit Record</span>
+                        </button>
+                    </div>
                 </div>
+
+
+                {/* Right Panel: Consultation Stream (35%) */}
+                <div className="w-[400px] xl:w-[480px] flex flex-col bg-muted/5 glass-premium border-l border-white/5">
+                    <div className="flex-none p-4 border-b border-border/40 flex items-center justify-between">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Session Transcript</h3>
+                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            Processing
+                        </div>
+                    </div>
+
+                    <div
+                        ref={scrollRef}
+                        className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin"
+                    >
+                        {transcript.length === 0 && (
+                            <div className="h-full flex flex-col items-center justify-center text-center p-8 opacity-40">
+                                <Activity className="w-8 h-8 mb-4" />
+                                <p className="text-xs font-medium">Listening for conversation...</p>
+                            </div>
+                        )}
+
+                        <AnimatePresence initial={false}>
+                            {transcript.map((item) => (
+                                <motion.div
+                                    key={item.id}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="text-sm"
+                                >
+                                    {item.type === 'text' ? (
+                                        <div className="group relative pl-4 border-l-2 border-border/50 hover:border-primary/50 transition-colors py-1">
+                                            <p className="text-foreground/90 whitespace-pre-wrap leading-relaxed">{item.content}</p>
+                                            <span className="absolute right-0 top-1 text-[9px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">{item.timestamp}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="my-2 p-3 rounded-lg bg-primary/5 border border-primary/10 flex items-start gap-3">
+                                            <Database className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                                            <div className="space-y-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-primary uppercase">{item.toolInfo.field}</span>
+                                                    <span className="text-[9px] text-muted-foreground">{item.timestamp}</span>
+                                                </div>
+                                                <p className="text-xs font-mono text-foreground/70 truncate">{JSON.stringify(item.toolInfo.value)}</p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            ))}
+                        </AnimatePresence>
+                    </div>
+
+                    {/* Footer Info */}
+                    <div className="flex-none p-3 border-t border-border/40 bg-background/50 text-[10px] text-center text-muted-foreground">
+                        SHA-256 Encrypted • HIPAA Compliant Storage • Gemini 1.5 Pro
+                    </div>
+                </div>
+
             </div>
         </main>
     );
 }
 
-function MetricSmall({ label, value, sub, icon }: any) {
-    return (
-        <div className="glass-premium rounded-xl p-5 flex flex-col gap-3 group transition-all hover:border-primary/10">
-            <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</p>
-                {icon}
-            </div>
-            <div>
-                <div className="text-xl font-bold font-outfit tracking-tight text-foreground">{value}</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">{sub}</div>
-            </div>
-        </div>
-    );
-}

@@ -25,3 +25,12 @@ async def get_patients():
         return patients
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/patients/{patient_id}")
+async def delete_patient_endpoint(patient_id: int):
+    try:
+        from app.database import delete_patient
+        delete_patient(patient_id)
+        return {"status": "success", "message": f"Patient {patient_id} deleted"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

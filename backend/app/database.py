@@ -93,6 +93,13 @@ def save_patient(data: PatientData):
     conn.close()
     return patient_id
 
+def delete_patient(patient_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM patients WHERE id = ?', (patient_id,))
+    conn.commit()
+    conn.close()
+
 def get_all_patients():
     conn = get_db_connection()
     cursor = conn.cursor()
