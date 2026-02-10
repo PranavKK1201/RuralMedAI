@@ -1,72 +1,110 @@
 "use client";
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useSocket } from '@/hooks/useSocket';
 import { useAudioStream } from '@/hooks/useAudioStream';
 import { LiveForm } from '@/components/LiveForm';
 import { AudioVisualizer } from '@/components/AudioVisualizer';
 import { PatientData } from '@/types';
-import { Mic, Square, Save, Loader2 } from 'lucide-react';
+import { Mic, Square, Save, Activity, RefreshCw, Database, Settings, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
 
 export default function Home() {
     const [patientData, setPatientData] = useState<PatientData>({});
-    const [logs, setLogs] = useState<string[]>([]); // For debugging
+    const [transcript, setTranscript] = useState<any[]>([]);
+    const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-    // 1. WebSocket Handler
+    // Audio Device Handling
+    const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
+
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll transcript
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [transcript]);
+
     const handleMessage = useCallback((data: any) => {
-        // Gemini sends: { type: "content", text: "..." }
-        if (data.type === 'content' && data.text) {
-            const text = data.text;
-            try {
-                // Basic JSON extraction logic for streaming text
-                // Clean code fencing if present
-                const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        const now = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-                // In a real stream, we might get partial JSON "{ "type": "update", ..." 
-                // or multiple JSONs "{...}{...}". 
-                // For this POC, we try to parse the whole chunk or rely on Gemini sending complete objects per turn
+        // Handle Direct Tool Updates from Backend
+        if (data.type === 'update') {
+            setPatientData(prev => {
+                const newData = { ...prev };
 
-                if (cleanText.startsWith('{') && cleanText.endsWith('}')) {
-                    const update = JSON.parse(cleanText);
-
-                    if (update.type === 'update') {
-                        // Apply update to state
-                        setPatientData(prev => {
-                            const newData = { ...prev };
-
-                            // Handle nested vitals
-                            if (['temperature', 'blood_pressure', 'pulse', 'spo2'].includes(update.field)) {
-                                if (!newData.vitals) newData.vitals = {};
-                                (newData.vitals as any)[update.field] = update.value;
-                            }
-                            // Handle arrays (symptoms, vitals is object, meds)
-                            else if (['symptoms', 'medications', 'allergies', 'medical_history'].includes(update.field)) {
-                                // If value is array, replace? or append? 
-                                // Prompt says: "symptoms": ["fever"]. 
-                                // Usually we merge or replace. Let's replace for now.
-                                (newData as any)[update.field] = update.value;
-                            }
-                            // Handle simple fields
-                            else {
-                                (newData as any)[update.field] = update.value;
-                            }
-                            return newData;
-                        });
-
-                        setLogs(prev => [`Updated ${update.field}: ${JSON.stringify(update.value)}`, ...prev.slice(0, 4)]);
+                // Handle nested vitals updates (e.g. "vitals.temperature")
+                if (data.field.startsWith('vitals.')) {
+                    const vitalField = data.field.split('.')[1];
+                    if (['temperature', 'blood_pressure', 'pulse', 'spo2'].includes(vitalField)) {
+                        if (!newData.vitals) newData.vitals = {};
+                        (newData.vitals as any)[vitalField] = data.value;
                     }
                 }
-            } catch (e) {
-                // Ignoring partial JSONs in this simple POC
-                // console.log("Partial or text:", text);
-            }
+                // Handle direct vitals updates (legacy/fallback)
+                else if (['temperature', 'blood_pressure', 'pulse', 'spo2'].includes(data.field)) {
+                    if (!newData.vitals) newData.vitals = {};
+                    (newData.vitals as any)[data.field] = data.value;
+                }
+                // Handle other fields
+                else if (['symptoms', 'medications', 'allergies', 'medical_history', 'family_history', 'chief_complaint'].includes(data.field)) {
+                    (newData as any)[data.field] = data.value;
+                }
+                else if (['tentative_doctor_diagnosis', 'initial_llm_diagnosis'].includes(data.field)) {
+                    (newData as any)[data.field] = data.value;
+                }
+                else {
+                    (newData as any)[data.field] = data.value;
+                }
+                return newData;
+            });
+
+            // Add Tool Call to Transcript
+            setTranscript(prev => [
+                ...prev,
+                {
+                    id: Math.random().toString(36).substring(7),
+                    type: 'tool',
+                    toolInfo: { field: data.field, value: data.value },
+                    timestamp: now
+                }
+            ]);
+            setLastUpdated(now);
+            return;
+        }
+
+        // Handle Standard Text Content
+        if (data.type === 'content' && data.text) {
+            setTranscript(prev => {
+                const lastItem = prev[prev.length - 1];
+                // If last item is text, append to it
+                if (lastItem && lastItem.type === 'text') {
+                    return [
+                        ...prev.slice(0, -1),
+                        { ...lastItem, content: (lastItem.content || '') + data.text }
+                    ];
+                }
+                // Otherwise start new text block
+                return [
+                    ...prev,
+                    {
+                        id: Math.random().toString(36).substring(7),
+                        type: 'text',
+                        content: data.text,
+                        timestamp: now
+                    }
+                ];
+            });
         }
     }, []);
 
     const { isConnected, connect, disconnect, sendMessage } = useSocket(handleMessage);
 
-    // 2. Audio Handler
-    const { isRecording, startRecording, stopRecording } = useAudioStream((base64Audio) => {
+    // Initial audio chunk callback
+    const onAudioChunk = useCallback((base64Audio: string) => {
         if (isConnected) {
             sendMessage({
                 realtimeInput: {
@@ -77,24 +115,32 @@ export default function Home() {
                 }
             });
         }
-    });
+    }, [isConnected, sendMessage]);
+
+    const { isRecording, startRecording, stopRecording, getAudioDevices } = useAudioStream(onAudioChunk);
+
+    // Fetch devices on mount
+    useEffect(() => {
+        getAudioDevices().then(devices => {
+            setAudioDevices(devices);
+            if (devices.length > 0) {
+                // Try to find default or first
+                const defaultDevice = devices.find(d => d.deviceId === 'default');
+                setSelectedDeviceId(defaultDevice ? defaultDevice.deviceId : devices[0].deviceId);
+            }
+        });
+    }, [getAudioDevices]);
+
 
     const handleStart = async () => {
         connect();
-        // Wait a bit for connection? useSocket handles queueing? 
-        // Our simple useSocket checks readyState. 
-        // Ideally we wait for onopen. 
-        // For POC, we click "Start" which connects WS, then we click "Mic" or we do both?
-        // Let's do both sequentially with a small delay or check isConnected in a useEffect.
     };
 
-    // Auto-start recording when connected if we triggered it? 
-    // Let's keep it manual: Link Connect -> Start Recording
     useEffect(() => {
         if (isConnected && !isRecording) {
-            startRecording();
+            startRecording(selectedDeviceId);
         }
-    }, [isConnected]); // Run when connected
+    }, [isConnected, isRecording, startRecording, selectedDeviceId]);
 
 
     const handleStop = () => {
@@ -102,81 +148,241 @@ export default function Home() {
         disconnect();
     };
 
-    return (
-        <main className="min-h-screen bg-zinc-50 dark:bg-black p-4 md:p-8 font-sans">
-            <div className="max-w-6xl mx-auto space-y-8">
+    const [isCommiting, setIsCommiting] = useState(false);
 
-                {/* Header */}
-                <header className="flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+    const handleCommit = async () => {
+        if (!patientData || Object.keys(patientData).length === 0) {
+            alert("No patient data to commit.");
+            return;
+        }
+        setIsCommiting(true);
+        const now = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setTranscript(prev => [...prev, { id: 'sys-' + Date.now(), type: 'text', content: 'System: Committing record to EHR database...', timestamp: now }]);
+
+        console.log("DEBUG: Committing patientData:", patientData);
+
+        try {
+            const response = await fetch('http://localhost:8005/api/ehr/commit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(patientData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setTranscript(prev => [...prev, { id: 'sys-success-' + Date.now(), type: 'text', content: `System: Success! Record committed (ID: ${result.patient_id})`, timestamp: now }]);
+                alert(`Successfully committed to EHR! Patient ID: ${result.patient_id}`);
+            } else {
+                throw new Error(result.detail || 'Failed to commit');
+            }
+        } catch (error) {
+            console.error(error);
+            setTranscript(prev => [...prev, { id: 'sys-err-' + Date.now(), type: 'text', content: `System Error: EHR Commit Failed`, timestamp: now }]);
+            alert("Failed to commit to EHR. Check backend connection.");
+        } finally {
+            setIsCommiting(false);
+        }
+    };
+
+    return (
+        <main className="min-h-screen p-4 md:p-8 space-y-8 max-w-[1400px] mx-auto animate-in fade-in duration-700">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+                <div className="space-y-1">
+                    <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className="flex items-center gap-2"
+                    >
+                        <Database className="w-6 h-6 text-primary" />
+                        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent font-outfit">
                             RuralMed AI
                         </h1>
-                        <p className="text-zinc-500 text-sm">Automated Medical Scribe</p>
-                    </div>
+                    </motion.div>
+                    <p className="text-sm text-muted-foreground font-medium">Professional AI Medical Scribe • Secure Consultation</p>
+                </div>
 
-                    <div className="flex items-center gap-4">
-                        {/* Status Indicators */}
-                        <div className={`flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full ${isConnected ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-500'}`}>
-                            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-zinc-400'}`} />
-                            {isConnected ? 'Online' : 'Offline'}
+                <div className="flex items-center gap-3">
+                    <Link href="/patients" className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/20 transition-all hover:scale-105 active:scale-95 group">
+                        <FileText className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">Records</span>
+                    </Link>
+
+                    <AnimatePresence>
+                        {lastUpdated && (
+                            <motion.span
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest hidden sm:block"
+                            >
+                                Last Update: {lastUpdated}
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
+
+                    <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border transition-all duration-500 ${isConnected
+                        ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                        : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                        }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
+                        {isConnected ? 'System Online' : 'System Offline'}
+                    </div>
+                </div>
+            </div>
+
+            {/* Controls & Metrics Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <div className="lg:col-span-1 glass-premium rounded-xl p-6 flex flex-col justify-between group transition-all hover:border-primary/20">
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Voice Capture</p>
+                            <Settings className="w-3 h-3 text-muted-foreground" />
                         </div>
 
-                        <AudioVisualizer isRecording={isRecording} />
+                        {/* Device Selector */}
+                        <select
+                            className="w-full mb-4 bg-background/50 border border-border text-xs rounded-md p-2 focus:ring-1 focus:ring-primary outline-none"
+                            value={selectedDeviceId}
+                            onChange={(e) => setSelectedDeviceId(e.target.value)}
+                            disabled={isRecording}
+                        >
+                            {audioDevices.map(device => (
+                                <option key={device.deviceId} value={device.deviceId}>
+                                    {device.label || `Microphone ${device.deviceId.slice(0, 5)}...`}
+                                </option>
+                            ))}
+                        </select>
                     </div>
-                </header>
 
-                {/* Controls */}
-                <div className="flex gap-4 p-4 bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 items-center justify-between">
-                    <div className="flex gap-4">
+                    <div className="space-y-4">
                         {!isRecording ? (
                             <button
                                 onClick={handleStart}
-                                className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-blue-200 shadow-lg"
+                                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-lg font-bold transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary/20"
                             >
-                                <Mic className="w-5 h-5" />
-                                Start <span className="hidden sm:inline">Consultation</span>
+                                <Mic className="w-4 h-4" />
+                                Begin Consultation
                             </button>
                         ) : (
                             <button
                                 onClick={handleStop}
-                                className="flex items-center gap-2 px-6 py-3 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg font-medium transition-colors"
+                                className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-rose-600 text-white rounded-lg font-bold transition-all hover:bg-rose-700 shadow-lg shadow-rose-600/20"
                             >
-                                <Square className="w-5 h-5 fill-current" />
+                                <Square className="w-4 h-4 fill-current" />
                                 End Session
                             </button>
                         )}
+                        <AudioVisualizer isRecording={isRecording} />
                     </div>
-
-                    <button className="flex items-center gap-2 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-100 rounded-lg border border-zinc-200 transition-colors">
-                        <Save className="w-4 h-4" />
-                        Commit to Record
-                    </button>
                 </div>
 
-                {/* Main Workspace */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left: The Live Form */}
-                    <div className="lg:col-span-2">
+                <MetricSmall label="Session Status" value={isRecording ? "Recording" : "Idle"} sub={isConnected ? "WebSocket Connected" : "Stream Waiting"} icon={<Activity className="w-4 h-4 text-emerald-500" />} />
+                <MetricSmall label="Data Processing" value={transcript.length > 0 ? "Active" : "Standby"} sub={`${transcript.length} Events Captured`} icon={<RefreshCw className={`w-4 h-4 ${transcript.length > 0 ? "animate-spin text-blue-500" : "text-muted-foreground"}`} />} />
+
+                <div className="glass-premium rounded-xl p-4 flex items-center justify-center transition-all hover:border-primary/20 bg-emerald-950/20 border-emerald-500/10">
+                    <button
+                        onClick={handleCommit}
+                        disabled={isCommiting}
+                        className="w-full h-full min-h-[60px] flex items-center justify-center gap-3 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-900/20"
+                    >
+                        <Save className={`w-4 h-4 ${isCommiting ? 'animate-spin' : ''}`} />
+                        {isCommiting ? 'Saving...' : 'Commit to EHR'}
+                    </button>
+                </div>
+            </div>
+
+            {/* Main Content Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left: Interactive Form */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="glass-premium rounded-2xl p-1 overflow-hidden">
                         <LiveForm data={patientData} />
                     </div>
+                </div>
 
-                    {/* Right: Transcript / Logs (Debug view for POC) */}
-                    <div className="space-y-6">
-                        <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-4 h-[400px] flex flex-col">
-                            <h3 className="text-sm font-semibold text-zinc-500 mb-4 uppercase tracking-wider">Live Updates</h3>
-                            <div className="flex-1 overflow-y-auto space-y-2 font-mono text-xs text-zinc-600">
-                                {logs.length === 0 && <span className="text-zinc-400 italic">Waiting for updates...</span>}
-                                {logs.map((log, i) => (
-                                    <div key={i} className="p-2 bg-zinc-50 dark:bg-zinc-800 rounded border-l-2 border-blue-400 animate-in fade-in slide-in-from-left-2 duration-300">
-                                        {log}
-                                    </div>
+                {/* Right: Insights & Transcript */}
+                <div className="space-y-6">
+                    <div className="glass-premium rounded-xl p-6 h-[500px] flex flex-col shadow-sm">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Consultation Stream</h3>
+                            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        </div>
+
+                        <div
+                            ref={scrollRef}
+                            className="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin scroll-smooth"
+                        >
+                            {transcript.length === 0 && (
+                                <div className="h-full flex flex-col items-center justify-center text-center p-8 border border-dashed border-border rounded-lg bg-muted/5">
+                                    <Database className="w-8 h-8 text-muted-foreground/20 mb-4" />
+                                    <p className="text-xs text-muted-foreground font-medium italic">Awaiting clinical data stream...</p>
+                                </div>
+                            )}
+                            <AnimatePresence initial={false}>
+                                {transcript.map((item) => (
+                                    <motion.div
+                                        key={item.id}
+                                        initial={{ opacity: 0, y: 5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="transition-all"
+                                    >
+                                        {item.type === 'text' ? (
+                                            <div className="space-y-1">
+                                                <p className="text-sm text-foreground/90 leading-relaxed font-medium whitespace-pre-wrap">
+                                                    {item.content}
+                                                </p>
+                                                <span className="text-[9px] text-muted-foreground font-mono uppercase">{item.timestamp}</span>
+                                            </div>
+                                        ) : (
+                                            <div className="my-4 py-3 px-4 bg-primary/5 border border-primary/20 rounded-xl flex items-center justify-between group hover:bg-primary/10 transition-colors">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                                        <Database className="w-4 h-4 text-primary" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-primary uppercase tracking-widest">Extraction Applied</p>
+                                                        <p className="text-xs font-mono font-bold text-foreground/70">
+                                                            {item.toolInfo.field} → <span className="text-foreground">{JSON.stringify(item.toolInfo.value)}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <span className="text-[9px] text-muted-foreground font-mono">{item.timestamp}</span>
+                                            </div>
+                                        )}
+                                    </motion.div>
                                 ))}
-                            </div>
+                            </AnimatePresence>
+                        </div>
+                    </div>
+
+                    <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex gap-4">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Activity className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-foreground font-bold uppercase tracking-widest">Security Alert</p>
+                            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">All data is encrypted in transit and at rest. HIPAA compliant processing active.</p>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
+    );
+}
+
+function MetricSmall({ label, value, sub, icon }: any) {
+    return (
+        <div className="glass-premium rounded-xl p-5 flex flex-col gap-3 group transition-all hover:border-primary/10">
+            <div className="flex items-center justify-between">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</p>
+                {icon}
+            </div>
+            <div>
+                <div className="text-xl font-bold font-outfit tracking-tight text-foreground">{value}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5 font-medium">{sub}</div>
+            </div>
+        </div>
     );
 }

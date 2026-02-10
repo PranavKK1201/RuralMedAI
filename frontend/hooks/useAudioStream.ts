@@ -6,7 +6,19 @@ export const useAudioStream = (onAudioChunk: (data: string) => void) => {
     const workletNodeRef = useRef<AudioWorkletNode | null>(null);
     const streamRef = useRef<MediaStream | null>(null);
 
-    const startRecording = useCallback(async () => {
+    const getAudioDevices = useCallback(async () => {
+        try {
+            // Request permission first to get labels
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return devices.filter(device => device.kind === 'audioinput');
+        } catch (error) {
+            console.error("Error fetching audio devices:", error);
+            return [];
+        }
+    }, []);
+
+    const startRecording = useCallback(async (deviceId?: string) => {
         try {
             // 1. Init AudioContext at 16kHz to match Gemini requirement
             const audioContext = new AudioContext({ sampleRate: 16000 });
@@ -15,13 +27,16 @@ export const useAudioStream = (onAudioChunk: (data: string) => void) => {
             // 2. Load the Worklet
             await audioContext.audioWorklet.addModule('/worklet.js');
 
-            // 3. Get Mic Stream
-            const stream = await navigator.mediaDevices.getUserMedia({
+            // 3. Get Mic Stream with specific device if provided
+            const constraints: MediaStreamConstraints = {
                 audio: {
                     channelCount: 1,
                     sampleRate: 16000,
+                    deviceId: deviceId ? { exact: deviceId } : undefined
                 },
-            });
+            };
+
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
             streamRef.current = stream;
 
             // 4. Create Source & Worklet Node
@@ -38,14 +53,7 @@ export const useAudioStream = (onAudioChunk: (data: string) => void) => {
 
             // 6. Connect Graph
             source.connect(workletNode);
-            workletNode.connect(audioContext.destination); // Connect to mute? No, don't connect to destination to avoid feedback loop unless we want to hear ourselves. 
-            // Actually, standard practice is NOT to connect to destination if we just want to process.
-            // But WebAudio requires a connection to destination or it might stop? 
-            // WorkletNode is a destination itself effectively. 
-            // Let's NOT connect to destination to prevent feedback.
-            // source.connect(workletNode); 
-            // workletNodeRef.current = workletNode; -- wait, if we don't connect to destination, does it run?
-            // Yes, usually.
+            // Do not connect to destination to avoid feedback loop
 
             workletNodeRef.current = workletNode;
             setIsRecording(true);
@@ -71,7 +79,7 @@ export const useAudioStream = (onAudioChunk: (data: string) => void) => {
         setIsRecording(false);
     }, []);
 
-    return { isRecording, startRecording, stopRecording };
+    return { isRecording, startRecording, stopRecording, getAudioDevices };
 };
 
 // Helper: Fast ArrayBuffer to Base64

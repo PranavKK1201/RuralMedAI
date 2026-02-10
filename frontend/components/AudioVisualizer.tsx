@@ -1,12 +1,23 @@
+"use client";
+
 import { useEffect, useRef } from 'react';
 
 export function AudioVisualizer({ isRecording }: { isRecording: boolean }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
-        if (!isRecording) return;
+        if (!isRecording) {
+            const canvas = canvasRef.current;
+            const ctx = canvas?.getContext('2d');
+            if (canvas && ctx) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                // Draw static baseline
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.fillRect(0, canvas.height / 2 - 1, canvas.width, 2);
+            }
+            return;
+        }
 
-        // Allow the animation to run
         let animationFrameId: number;
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d');
@@ -14,25 +25,42 @@ export function AudioVisualizer({ isRecording }: { isRecording: boolean }) {
         const draw = () => {
             if (!canvas || !ctx) return;
 
-            // Clear
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Fake Waveform for POC (In real app we'd attach a loopback analyser to the AudioContext)
-            // Since useAudioStream doesn't expose the AnalyserNode yet (to keep it simple), we simulate activity.
-            ctx.fillStyle = '#3b82f6';
-            const bars = 20;
-            const gap = 4;
+            // Audio visualization configuration
+            const bars = 32;
+            const gap = 2;
             const width = (canvas.width - ((bars - 1) * gap)) / bars;
 
+            // Draw a subtle baseline
+            ctx.fillStyle = 'rgba(255,255,255,0.05)';
+            ctx.fillRect(0, canvas.height / 2 - 0.5, canvas.width, 1);
+
             for (let i = 0; i < bars; i++) {
-                const height = Math.random() * canvas.height * 0.8;
-                ctx.fillRect(i * (width + gap), (canvas.height - height) / 2, width, height);
+                // Professional color scheme - matching oklch primary
+                const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, '#92c5ff'); // Lighter blue
+                gradient.addColorStop(0.5, '#3b82f6'); // Primary blue
+                gradient.addColorStop(1, '#1e40af'); // Deeper blue
+
+                ctx.fillStyle = gradient;
+
+                // Simulate audio frequency data with smoother randomness
+                const seed = Date.now() / 200;
+                const height = Math.abs(Math.sin(seed + i * 0.2)) * canvas.height * 0.6 + (Math.random() * 5);
+
+                // Rounded bar effect
+                const x = i * (width + gap);
+                const y = (canvas.height - height) / 2;
+
+                // Drawing paths for rounded rects
+                ctx.beginPath();
+                const radius = width / 2;
+                ctx.roundRect(x, y, width, height, radius);
+                ctx.fill();
             }
 
-            animationFrameId = requestAnimationFrame(() => {
-                // slow down animation
-                setTimeout(draw, 100);
-            });
+            animationFrameId = requestAnimationFrame(draw);
         };
 
         draw();
@@ -43,6 +71,13 @@ export function AudioVisualizer({ isRecording }: { isRecording: boolean }) {
     }, [isRecording]);
 
     return (
-        <canvas ref={canvasRef} width={200} height={40} className="w-full max-w-[200px] h-[40px]" />
+        <div className="w-full bg-black/20 rounded-lg p-2 border border-white/5 shadow-inner">
+            <canvas
+                ref={canvasRef}
+                width={300}
+                height={40}
+                className="w-full h-[40px] opacity-80"
+            />
+        </div>
     );
 }

@@ -5,14 +5,13 @@ from typing import List, Optional
 class Vitals(BaseModel):
     temperature: Optional[str] = Field(None, description="Body Temperature (e.g., 98.6 F)")
     blood_pressure: Optional[str] = Field(None, description="Blood Pressure (e.g., 120/80 mmHg)")
-    pulse: Optional[int] = Field(None, description="Heart Rate in BPM")
-    spo2: Optional[int] = Field(None, description="Oxygen Saturation in %")
-    respiratory_rate: Optional[int] = Field(None, description="Breaths per minute")
+    pulse: Optional[str] = Field(None, description="Heart Rate in BPM")
+    spo2: Optional[str] = Field(None, description="Oxygen Saturation in %")
 
 class PatientData(BaseModel):
     # Demographics
     name: Optional[str] = Field(None, description="Patient's full name")
-    age: Optional[int] = Field(None, description="Patient's age in years")
+    age: Optional[str] = Field(None, description="Patient's age in years")
     gender: Optional[str] = Field(None, description="Patient's gender (Male/Female/Other)")
     
     # Clinical Signs
@@ -23,9 +22,14 @@ class PatientData(BaseModel):
     vitals: Vitals = Field(default_factory=Vitals, description="Patient vitals")
     
     # History & Diagnosis
-    medical_history: List[str] = Field(default_factory=list, description="Past medical conditions")
+    medical_history: List[str] = Field(default_factory=list, description="Patient's past medical conditions")
+    family_history: List[str] = Field(default_factory=list, description="Family medical history")
     allergies: List[str] = Field(default_factory=list, description="Known allergies")
-    diagnosis: Optional[str] = Field(None, description="Doctor's diagnosis")
+    
+    # Diagnosis (Split)
+    tentative_doctor_diagnosis: Optional[str] = Field(None, description="Diagnosis explicitly inferred or stated by the doctor")
+    initial_llm_diagnosis: Optional[str] = Field(None, description="Diagnosis inferred by the AI based on symptoms/history")
+    
     medications: List[str] = Field(default_factory=list, description="Prescribed medications")
 
     # Metadata (Useful for Phase 2 DB storage)
