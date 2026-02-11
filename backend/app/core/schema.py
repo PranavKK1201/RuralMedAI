@@ -32,6 +32,13 @@ class PatientData(BaseModel):
     
     medications: List[str] = Field(default_factory=list, description="Prescribed medications")
 
+    # Eligibility & Schemes
+    ration_card_type: Optional[str] = Field(None, description="e.g., BPL, Antyodaya (AAY), PHH")
+    income_bracket: Optional[str] = Field(None, description="Reported annual income")
+    occupation: Optional[str] = Field(None, description="Primary occupation (e.g., Casual Labour, Farmer)")
+    caste_category: Optional[str] = Field(None, description="SC/ST/General/OBC")
+    housing_type: Optional[str] = Field(None, description="Kucha/Pucca house")
+
     # Metadata (Useful for Phase 2 DB storage)
     consultation_id: Optional[str] = None
     timestamp: Optional[str] = None

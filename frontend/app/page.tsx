@@ -191,7 +191,7 @@ export default function Home() {
             <header className="flex-none border-b border-white/5 bg-white/[0.03] backdrop-blur-xl z-50">
                 <div className="flex items-center justify-between px-3 py-1">
                     {/* Brand */}
-                    <div className="flex items-center gap-2 pl-10 pt-3">
+                    <div className="flex items-center gap-2 pl-10">
                         <div>
                             <h1 className="text-sm font-bold tracking-[0.4em] text-white">RURALMED</h1>
                         </div>
@@ -253,7 +253,7 @@ export default function Home() {
                     
                     {/* Scrollable Form Content */}
                     <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
-                        <div className="max-w-6xl mx-auto">
+                        <div className="max-w-7xl mx-auto h-full">
                             <LiveForm data={patientData} />
                         </div>
                     </div>

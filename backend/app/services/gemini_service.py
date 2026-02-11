@@ -8,6 +8,7 @@ from google import genai
 from google.genai import types
 from fastapi import WebSocket
 from app.services.prompt_eng import SYSTEM_INSTRUCTION
+from app.services.scheme_service import SchemeEligibilityEngine
 
 load_dotenv()
 
@@ -26,7 +27,7 @@ update_patient_data = {
         "properties": {
             "field": {
                 "type": "STRING",
-                "description": "The field to update (e.g., name, age, gender, chief_complaint, symptoms, medical_history (patient past conditions), family_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
+                "description": "The field to update (e.g., name, age, gender, caste_category, ration_card_type, income_bracket, occupation, housing_type, chief_complaint, symptoms, medical_history, family_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
             },
             "value": {
                 "type": "STRING", 
@@ -42,6 +43,7 @@ tools = [{"function_declarations": [update_patient_data]}]
 class GeminiService:
     def __init__(self):
         self.session = None
+        self.current_patient_data = {}
 
     async def handle_session(self, websocket: WebSocket):
         """
@@ -158,12 +160,24 @@ class GeminiService:
 
                                 print(f"Tool Call: update_patient_data({field}, {value})")
 
+                                # Update internal state to calculate eligibility
+                                self.current_patient_data[field] = value
+
                                 # Send update to frontend immediately
                                 await websocket.send_json({
                                     "type": "update",
                                     "field": field,
                                     "value": value
                                 })
+
+                                # If an eligibility field changed, recalculate
+                                if field in ['ration_card_type', 'income_bracket', 'occupation', 'age', 'caste_category', 'housing_type']:
+                                    report = SchemeEligibilityEngine.check_pmjay_rural(self.current_patient_data)
+                                    await websocket.send_json({
+                                        "type": "update",
+                                        "field": "scheme_eligibility",
+                                        "value": report
+                                    })
                                 
                                 # Send tool execution results back to Gemini
                                 function_responses.append(types.FunctionResponse(
