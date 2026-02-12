@@ -242,12 +242,12 @@ def get_patient_by_id(patient_id: int):
     
     if row:
         p = dict(row)
-        for json_field in ['symptoms', 'medical_history', 'family_history', 'allergies', 'medications']:
+        for json_field in ['symptoms', 'medical_history', 'family_history', 'allergies', 'medications', 'scheme_eligibility']:
             if p.get(json_field):
                 try:
                     p[json_field] = json.loads(p[json_field])
                 except:
-                    p[json_field] = []
+                    p[json_field] = [] if json_field != 'scheme_eligibility' else None
         return p
     return None
 

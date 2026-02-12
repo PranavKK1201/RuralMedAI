@@ -4,26 +4,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: hsl(0 0% 100%);
-  --foreground: hsl(0 0% 0%);
+  --background: hsl(220 23% 97%);
+  --foreground: hsl(225 18% 15%);
   --card: hsl(0 0% 100%);
-  --card-foreground: hsl(0 0% 0%);
+  --card-foreground: hsl(225 18% 15%);
   --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(0 0% 0%);
-  --primary: hsl(0 0% 0%);
+  --popover-foreground: hsl(225 18% 15%);
+  --primary: hsl(236 27% 22%);
   --primary-foreground: hsl(0 0% 100%);
-  --secondary: hsl(0 0% 96.1%);
-  --secondary-foreground: hsl(0 0% 9%);
-  --muted: hsl(0 0% 96.1%);
-  --muted-foreground: hsl(0 0% 45.1%);
-  --accent: hsl(0 0% 96.1%);
-  --accent-foreground: hsl(0 0% 9%);
+  --secondary: hsl(220 20% 94%);
+  --secondary-foreground: hsl(225 20% 22%);
+  --muted: hsl(220 18% 93%);
+  --muted-foreground: hsl(221 12% 43%);
+  --accent: hsl(188 72% 44%);
+  --accent-foreground: hsl(0 0% 100%);
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(0 0% 89.8%);
-  --input: hsl(0 0% 89.8%);
-  --ring: hsl(0 0% 3.9%);
-  --radius: 0.5rem;
+  --border: hsl(220 18% 86%);
+  --input: hsl(220 18% 86%);
+  --ring: hsl(188 72% 44%);
+  --radius: 0.9rem;
 }
 
 .dark {
@@ -115,19 +115,20 @@
 
 /* Premium UI Utilities */
 .glass-premium {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(71, 85, 105, 0.15);
 }
 
 .mesh-gradient {
-  background: radial-gradient(circle at 50% -20%, rgba(255, 255, 255, 0.05), transparent 70%);
+  background: radial-gradient(circle at 40% -10%, rgba(15, 23, 42, 0.06), transparent 65%),
+              radial-gradient(circle at 75% 10%, rgba(20, 184, 166, 0.08), transparent 60%);
 }
 
 .bg-grid-premium {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(100, 116, 139, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 116, 139, 0.08) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: radial-gradient(circle at center, black, transparent 80%);
 }

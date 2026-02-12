@@ -18,7 +18,6 @@ export function LiveForm({ data }: LiveFormProps) {
         Object.keys(data).forEach((key) => {
             const k = key as keyof PatientData;
             if (data[k] !== undefined) {
-                // Special handling for vitals object
                 if (k === 'vitals' && typeof data[k] === 'object') {
                     Object.keys(data[k]!).forEach(vKey => {
                         const path = `vitals.${vKey}` as any;
@@ -38,92 +37,103 @@ export function LiveForm({ data }: LiveFormProps) {
     }, [data, setValue, watch]);
 
     return (
-        <div className="space-y-4 p-4 bg-transparent h-full flex flex-col overflow-hidden">
-            {/* Header Section */}
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+        <div className="space-y-2 p-2 bg-transparent h-full flex flex-col overflow-hidden">
+            <div className="bg-white border border-slate-300 rounded-2xl px-4 py-2.5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded bg-white/5 border border-white/10 flex items-center justify-center shadow-2xl">
-                        <ClipboardList className="w-4.5 h-4.5 text-foreground/80" />
+                    <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
+                        <ClipboardList className="w-4 h-4 text-slate-700" />
                     </div>
                     <div>
-                        <h2 className="text-sm font-bold tracking-[0.2rem] uppercase text-foreground/90">Intelligent Clinical Scribe</h2>
-                        <p className="text-[8px] text-white/30 uppercase tracking-[0.2em] font-mono mt-0.5">Real-time Data Extraction & Analysis</p>
+                        <h2 className="text-sm font-semibold tracking-[0.18rem] uppercase text-slate-800">Intelligent Clinical Scribe</h2>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-[0.14em] font-mono mt-0.5">Real-time data extraction and analysis</p>
                     </div>
                 </div>
-                <div className="px-3 py-1 bg-white/5 rounded border border-white/10 flex items-center gap-2">
-                    <div className="w-1.2 h-1.2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                    <span className="text-[9px] font-bold text-foreground/80 uppercase tracking-widest">LIVE_EXTRACTION</span>
+                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-semibold text-slate-700 uppercase tracking-wider">Live extraction</span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-x-6 gap-y-4 flex-1 overflow-hidden">
-                {/* Patient Profile */}
-                <div className="md:col-span-8 space-y-3 flex flex-col">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.4em]">
-                        <User className="w-3 h-3" /> Identification
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div className="md:col-span-2">
-                            <InputField label="Name" name="name" register={register} highlight={lastUpdatedField === 'name'} placeholder="Full Name" />
+            <div className="grid grid-cols-1 gap-2 flex-1">
+                <section className="bg-white border border-slate-300 rounded-2xl p-3">
+                    <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1px_1fr] gap-3 items-center">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
+                                <User className="w-3.5 h-3.5" /> Identification
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                                <div className="md:col-span-2">
+                                    <InputField label="Name" name="name" register={register} highlight={lastUpdatedField === 'name'} placeholder="Full Name" />
+                                </div>
+                                <InputField label="Age" name="age" register={register} highlight={lastUpdatedField === 'age'} placeholder="--" />
+                                <InputField label="Gender" name="gender" register={register} highlight={lastUpdatedField === 'gender'} placeholder="--" />
+                            </div>
+                            <InputField
+                                label="Chief Complaint"
+                                name="chief_complaint"
+                                register={register}
+                                highlight={lastUpdatedField === 'chief_complaint'}
+                                isTextArea
+                                placeholder="Describe symptoms..."
+                                minHeight="h-[84px]"
+                            />
                         </div>
-                        <InputField label="Age" name="age" register={register} highlight={lastUpdatedField === 'age'} placeholder="--" />
-                        <InputField label="Gender" name="gender" register={register} highlight={lastUpdatedField === 'gender'} placeholder="--" />
-                    </div>
-                    <div className="flex-1 min-h-[50px]">
-                        <InputField label="Chief Complaint" name="chief_complaint" register={register} highlight={lastUpdatedField === 'chief_complaint'} isTextArea placeholder="Describe symptoms..." />
-                    </div>
-                </div>
 
-                {/* Vitals Summary */}
-                <div className="md:col-span-4 space-y-3 flex flex-col">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.4em]">
-                        <Thermometer className="w-3 h-3" /> Biometrics
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 flex-1">
-                        <VitalField label="BP" name="vitals.blood_pressure" register={register} highlight={lastUpdatedField === 'vitals'} unit="mmHg" />
-                        <VitalField label="HR" name="vitals.pulse" register={register} highlight={lastUpdatedField === 'vitals'} unit="BPM" />
-                        <VitalField label="TEMP" name="vitals.temperature" register={register} highlight={lastUpdatedField === 'vitals'} unit="°C" />
-                        <VitalField label="SPO2" name="vitals.spo2" register={register} highlight={lastUpdatedField === 'vitals'} unit="%" />
-                    </div>
-                </div>
+                        <div className="hidden md:block w-px h-[82%] bg-slate-300 self-center" />
 
-                {/* Scheme Eligibility Checker */}
-                <div className="md:col-span-12 pt-1.5 border-t border-white/5">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-blue-400/60 uppercase tracking-[0.4em] mb-3">
+                        <div className="flex flex-col justify-center gap-2 w-full max-w-[420px] md:mx-auto">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
+                                <Thermometer className="w-3.5 h-3.5" /> Biometrics
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                                <VitalField label="BP" name="vitals.blood_pressure" register={register} highlight={lastUpdatedField === 'vitals'} unit="mmHg" />
+                                <VitalField label="HR" name="vitals.pulse" register={register} highlight={lastUpdatedField === 'vitals'} unit="BPM" />
+                                <VitalField label="Temp" name="vitals.temperature" register={register} highlight={lastUpdatedField === 'vitals'} unit="°C" />
+                                <VitalField label="SPO2" name="vitals.spo2" register={register} highlight={lastUpdatedField === 'vitals'} unit="%" />
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="bg-white border border-slate-300 rounded-2xl p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
                         <CreditCard className="w-3.5 h-3.5" /> Eligibility Verification
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                        <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-6 gap-3">
-                            <InputField label="Ration Card" name="ration_card_type" register={register} highlight={lastUpdatedField === 'ration_card_type'} placeholder="Type..." />
-                            <InputField label="Income" name="income_bracket" register={register} highlight={lastUpdatedField === 'income_bracket'} placeholder="Annual..." />
-                            <InputField label="Occupation" name="occupation" register={register} highlight={lastUpdatedField === 'occupation'} placeholder="Job..." />
-                            <InputField label="Caste Category" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC..." />
-                            <InputField label="Housing Type" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kucha/Pucca..." />
-                            <InputField label="Location" name="location" register={register} highlight={lastUpdatedField === 'location'} placeholder="State/City..." />
+
+                    <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1px_1fr] gap-3 items-center">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <InputField label="Ration Card" name="ration_card_type" register={register} highlight={lastUpdatedField === 'ration_card_type'} placeholder="Yes/No" />
+                            <InputField label="Income" name="income_bracket" register={register} highlight={lastUpdatedField === 'income_bracket'} placeholder="Per month" />
+                            <InputField label="Occupation" name="occupation" register={register} highlight={lastUpdatedField === 'occupation'} placeholder="Occupation" />
+                            <InputField label="Caste Category" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC" />
+                            <InputField label="Housing Type" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kutcha/Pucca" />
+                            <InputField label="Location" name="location" register={register} highlight={lastUpdatedField === 'location'} placeholder="State/City" />
                         </div>
-                        
-                        <div className="md:col-span-4 h-full">
-                            <EligibilityStatus data={data} />
+
+                        <div className="hidden md:block w-px h-[82%] bg-slate-300 self-center" />
+
+                        <div className="flex items-center self-center">
+                            <div className="w-full md:mx-auto">
+                                <EligibilityStatus data={data} />
+                            </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                {/* Clinical Notes */}
-                <div className="md:col-span-12 space-y-4 pt-1.5 border-t border-white/5 flex flex-col flex-1">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground uppercase tracking-[0.4em]">
-                        <Activity className="w-3.5 h-3.5 text-white/40" /> Clinical Intelligence
+                <section className="bg-white border border-slate-300 rounded-2xl p-3 space-y-2">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
+                        <Activity className="w-3.5 h-3.5" /> Clinical Intelligence
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3 shrink-0">
-                        <ListSection title="Symptoms" items={data.symptoms} placeholder="..." />
-                        <ListSection title="Medications" items={data.medications} placeholder="..." />
-                        <ListSection title="Allergies" items={data.allergies} placeholder="..." />
-                        <ListSection title="History" items={data.medical_history} placeholder="..." />
-                        <ListSection title="Family History" items={data.family_history} placeholder="..." />
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                        <ListSection title="Symptoms" items={data.symptoms} placeholder="No symptoms captured" />
+                        <ListSection title="Medications" items={data.medications} placeholder="No medications captured" />
+                        <ListSection title="Allergies" items={data.allergies} placeholder="No allergies captured" />
+                        <ListSection title="History" items={data.medical_history} placeholder="No history captured" />
+                        <ListSection title="Family History" items={data.family_history} placeholder="No family history captured" />
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-[60px]">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <InputField
                             label="Clinical Impression"
                             name="tentative_doctor_diagnosis"
@@ -131,6 +141,7 @@ export function LiveForm({ data }: LiveFormProps) {
                             highlight={lastUpdatedField === 'tentative_doctor_diagnosis'}
                             isTextArea
                             placeholder="Physician findings..."
+                            minHeight="min-h-[72px]"
                         />
                         <InputField
                             label="Diagnostic Rationale"
@@ -138,10 +149,11 @@ export function LiveForm({ data }: LiveFormProps) {
                             register={register}
                             highlight={lastUpdatedField === 'initial_llm_diagnosis'}
                             isTextArea
-                            placeholder="AI rationale..."
+                            placeholder="Observer rationale..."
+                            minHeight="min-h-[72px]"
                         />
                     </div>
-                </div>
+                </section>
             </div>
         </div>
     );
@@ -156,100 +168,99 @@ function EligibilityStatus({ data }: { data: any }) {
         data.occupation,
         data.caste_category,
         data.housing_type,
+        data.location,
     ];
-    const requiredFieldsFilled = requiredEligibilityFields.every((value) => String(value ?? '').trim().length > 0);
 
+    const requiredFieldsFilled = requiredEligibilityFields.every((value) => String(value ?? '').trim().length > 0);
     const isEligiblePMJAY = Boolean(backendData?.pmjay?.eligible);
     const isEligibleState = Boolean(backendData?.state_scheme?.eligible);
-
     const reasons = backendData?.pmjay?.reasons || [];
 
     return (
-        <div className="bg-white/[0.03] border border-white/10 rounded-md p-2.5 space-y-2 h-full flex flex-col justify-center min-h-[70px]">
+        <div className="bg-slate-50 border border-slate-300 rounded-xl p-2.5 w-full min-h-[128px] space-y-2">
             <div className="flex items-center justify-between">
-                <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">Eligibility Record</span>
+                <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-[0.2em]">Eligibility Record</span>
                 {backendData && (
-                    <span className="text-[7px] font-bold text-blue-400/80 bg-blue-500/10 px-1 border border-blue-500/20 rounded">VERIFIED</span>
+                    <span className="text-[9px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 border border-cyan-200 rounded-lg">Verified</span>
                 )}
             </div>
+
             {!backendData && (
-                <p className="text-[8px] text-white/30 uppercase tracking-wider">
-                    {requiredFieldsFilled ? 'Awaiting scheme verification response...' : 'Fill age, ration card, income, occupation, caste, housing to run verification'}
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                    {requiredFieldsFilled
+                        ? 'Awaiting scheme verification response.'
+                        : 'Fill age, ration card, income, occupation, caste, housing, and location to run verification.'}
                 </p>
             )}
 
-            <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                        {isEligiblePMJAY ? <CheckCircle2 className="w-3 h-3 text-green-400" /> : <Info className="w-3 h-3 text-white/10" />}
-                        <span className="text-[10px] font-bold text-white/80">PM-JAY</span>
-                    </div>
-                    <span className={`text-[8px] font-bold uppercase tracking-wider ${isEligiblePMJAY ? 'text-green-400' : 'text-white/10'}`}>
-                        {isEligiblePMJAY ? 'ELIGIBLE' : 'PENDING'}
-                    </span>
-                </div>
+            <div className="space-y-2">
+                <StatusRow label="PM-JAY" eligible={isEligiblePMJAY} />
 
                 {isEligiblePMJAY && reasons.length > 0 && (
-                    <div className="pl-4.5 space-y-0.5">
-                        {reasons.map((r: string, i: number) => (
-                            <p key={i} className="text-[6px] text-white/30 uppercase leading-none italic">
-                                • {r}
-                            </p>
+                    <div className="pl-5 space-y-1">
+                        {reasons.map((reason: string, index: number) => (
+                            <p key={index} className="text-[10px] text-slate-500 leading-tight">• {reason}</p>
                         ))}
                     </div>
                 )}
 
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                        {isEligibleState ? <CheckCircle2 className="w-3 h-3 text-green-400" /> : <Info className="w-3 h-3 text-white/10" />}
-                        <span className="text-[10px] font-bold text-white/80">State Health</span>
-                    </div>
-                    <span className={`text-[8px] font-bold uppercase tracking-wider ${isEligibleState ? 'text-green-400' : 'text-white/10'}`}>
-                        {isEligibleState ? 'ELIGIBLE' : 'PENDING'}
-                    </span>
-                </div>
+                <StatusRow label="State Health" eligible={isEligibleState} />
             </div>
         </div>
     );
 }
 
-function InputField({ label, name, register, highlight, isTextArea, placeholder }: any) {
+function StatusRow({ label, eligible }: { label: string; eligible: boolean }) {
     return (
-        <div className="relative group w-full flex flex-col h-full">
-            <label className="block text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mb-1 px-0.5">{label}</label>
-            <div className={`relative transition-all duration-500 rounded border flex-1 ${highlight ? 'border-white/50 bg-white/10' : 'border-white/30 bg-white/[0.03]'}`}>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+                {eligible ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Info className="w-3.5 h-3.5 text-slate-400" />}
+                <span className="text-[12px] font-semibold text-slate-700">{label}</span>
+            </div>
+            <span className={`text-[10px] font-semibold uppercase tracking-wider ${eligible ? 'text-emerald-600' : 'text-slate-500'}`}>
+                {eligible ? 'Eligible' : 'Pending'}
+            </span>
+        </div>
+    );
+}
+
+function InputField({ label, name, register, highlight, isTextArea, placeholder, minHeight = 'h-[44px]' }: any) {
+    return (
+        <div className="relative group w-full flex flex-col">
+            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-[0.2em] mb-1 px-0.5">{label}</label>
+            <div className={`relative transition-all duration-300 rounded-xl border ${highlight ? 'border-cyan-300 bg-cyan-50' : 'border-slate-300 bg-slate-50'}`}>
                 {isTextArea ? (
                     <textarea
                         {...register(name)}
                         placeholder={placeholder}
-                        className="w-full p-2.5 text-sm bg-transparent outline-none placeholder:text-white/10 min-h-[60px] h-full resize-none leading-relaxed font-mono text-foreground"
+                        className={`w-full p-2.5 text-[13px] bg-transparent outline-none placeholder:text-slate-400 ${minHeight} resize-none leading-relaxed font-mono text-slate-800`}
                     />
                 ) : (
                     <input
                         {...register(name)}
                         placeholder={placeholder}
-                        className="w-full p-2.5 text-sm bg-transparent outline-none placeholder:text-white/10 font-mono text-foreground"
+                        className="w-full h-9 p-2.5 text-[13px] bg-transparent outline-none placeholder:text-slate-400 font-mono text-slate-800"
                     />
                 )}
             </div>
         </div>
-    )
+    );
 }
 
 function VitalField({ label, name, register, highlight, unit }: any) {
     return (
-        <div className={`p-3 rounded border transition-all duration-500 h-full flex flex-col justify-between ${highlight ? 'border-white/50 bg-white/10' : 'border-white/30 bg-white/[0.03]'}`}>
-            <label className="block text-[9px] font-bold text-muted-foreground uppercase tracking-widest mb-1">{label}</label>
-            <div className="flex items-baseline gap-1.5">
+        <div className={`p-2 rounded-xl border transition-all duration-300 h-[66px] flex flex-col justify-between ${highlight ? 'border-cyan-300 bg-cyan-50' : 'border-slate-300 bg-slate-50'}`}>
+            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{label}</label>
+            <div className="flex items-end gap-1.5">
                 <input
                     {...register(name)}
-                    className="w-full bg-transparent text-lg font-bold font-mono outline-none text-foreground placeholder:text-white/5"
+                    className="w-full bg-transparent text-xl font-semibold font-mono outline-none text-slate-800 placeholder:text-slate-300 leading-none"
                     placeholder="--"
                 />
-                <span className="text-[9px] font-bold text-white/40">{unit}</span>
+                <span className="text-[10px] font-semibold text-slate-500 mb-1">{unit}</span>
             </div>
         </div>
-    )
+    );
 }
 
 function ListSection({ title, items, placeholder }: any) {
@@ -257,25 +268,25 @@ function ListSection({ title, items, placeholder }: any) {
 
     return (
         <div className="space-y-1.5 flex flex-col h-full">
-            <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{title}</label>
-            <div className="p-2.5 bg-white/[0.03] min-h-[60px] h-full rounded border border-white/20 flex-1">
+            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{title}</label>
+            <div className="p-2 bg-slate-50 min-h-[56px] rounded-xl border border-slate-300 flex-1">
                 <AnimatePresence mode="popLayout">
                     {list.length ? (
-                        <div className="flex flex-col gap-1">
-                            {list.map(s => (
+                        <div className="flex flex-col gap-1.5">
+                            {list.map((entry: string) => (
                                 <motion.div
-                                    key={s}
+                                    key={entry}
                                     initial={{ opacity: 0, x: -5 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    className="text-[11px] text-foreground font-mono flex items-center gap-1.5"
+                                    className="text-[12px] text-slate-700 font-mono flex items-center gap-1.5"
                                 >
-                                    <span className="w-1 h-1 rounded-full bg-white/20" />
-                                    {s}
+                                    <span className="w-1 h-1 rounded-full bg-slate-400" />
+                                    {entry}
                                 </motion.div>
                             ))}
                         </div>
                     ) : (
-                        <span className="text-[9px] text-white/10 font-mono">{placeholder}</span>
+                        <span className="text-[11px] text-slate-400 font-mono">{placeholder}</span>
                     )}
                 </AnimatePresence>
             </div>

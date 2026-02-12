@@ -74,6 +74,8 @@ async def get_single_patient(patient_id: int):
         if not patient:
             raise HTTPException(status_code=404, detail="Patient not found")
         return patient
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
