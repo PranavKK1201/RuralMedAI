@@ -27,7 +27,7 @@ update_patient_data = {
         "properties": {
             "field": {
                 "type": "STRING",
-                "description": "The field to update (e.g., name, age, gender, caste_category, ration_card_type, income_bracket, occupation, housing_type, chief_complaint, symptoms, medical_history, family_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
+                "description": "The field to update (e.g., name, age, gender, caste_category, ration_card_type, income_bracket, occupation, housing_type, location, chief_complaint, symptoms, medical_history, family_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
             },
             "value": {
                 "type": "STRING", 
@@ -41,9 +41,20 @@ update_patient_data = {
 tools = [{"function_declarations": [update_patient_data]}]
 
 class GeminiService:
+    SCHEME_REQUIRED_FIELDS = ['ration_card_type', 'income_bracket', 'occupation', 'age', 'caste_category', 'housing_type']
+
     def __init__(self):
         self.session = None
         self.current_patient_data = {}
+
+    def _scheme_inputs_ready(self):
+        for field in self.SCHEME_REQUIRED_FIELDS:
+            value = self.current_patient_data.get(field)
+            if value is None:
+                return False
+            if isinstance(value, str) and value.strip() == "":
+                return False
+        return True
 
     async def handle_session(self, websocket: WebSocket):
         """
@@ -61,11 +72,11 @@ class GeminiService:
             "thinking_config": types.ThinkingConfig(
                 thinking_budget=0,
             ),
-            "output_audio_transcription": {} 
         }
         
         async with client.aio.live.connect(model=MODEL, config=config) as session:
             self.session = session
+            self.current_patient_data = {}
             print("--- Connected to Gemini Live API ---")
             
             # Start parallel tasks
@@ -116,26 +127,13 @@ class GeminiService:
                     # print("Received response from Gemini") # Verbose
                     server_content = response.server_content
                     
-                    # Handle Text/Transcription
-                    if server_content:
-                        # Direct model text
-                        if server_content.model_turn:
-                             for part in server_content.model_turn.parts:
-                                 if part.text:
-                                     print(f"Gemini Text: {part.text}")
-                                     await websocket.send_json({
-                                        "type": "content",
-                                        "text": part.text
-                                    })
-                        
-                        # Output Transcription
-                        if hasattr(server_content, 'output_transcription') and server_content.output_transcription:
-                             transcription = server_content.output_transcription.text
-                             print(f"Gemini Transcript: {transcription}")
-                             await websocket.send_json({
-                                "type": "content",
-                                "text": transcription
-                            })
+                    # Ignore model conversational text/audio transcription in observer mode.
+                    # We only stream structured tool updates to the frontend.
+                    if server_content and server_content.model_turn:
+                        pass
+
+                    if server_content and hasattr(server_content, 'output_transcription') and server_content.output_transcription:
+                        pass
 
                     # Handle Function Calls
                     if response.tool_call:
@@ -171,7 +169,7 @@ class GeminiService:
                                 })
 
                                 # If an eligibility field changed, recalculate
-                                if field in ['ration_card_type', 'income_bracket', 'occupation', 'age', 'caste_category', 'housing_type']:
+                                if field in self.SCHEME_REQUIRED_FIELDS and self._scheme_inputs_ready():
                                     report = SchemeEligibilityEngine.check_pmjay_rural(self.current_patient_data)
                                     await websocket.send_json({
                                         "type": "update",

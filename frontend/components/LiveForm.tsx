@@ -4,14 +4,14 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PatientData } from '@/types';
-import { ClipboardList, Thermometer, User, Activity, ShieldAlert, FileText, Zap, CreditCard, CheckCircle2, XCircle, Info } from 'lucide-react';
+import { ClipboardList, Thermometer, User, Activity, CreditCard, CheckCircle2, Info } from 'lucide-react';
 
 interface LiveFormProps {
     data: PatientData;
 }
 
 export function LiveForm({ data }: LiveFormProps) {
-    const { register, setValue, watch, control } = useForm<PatientData>({ defaultValues: data });
+    const { register, setValue, watch } = useForm<PatientData>({ defaultValues: data });
     const [lastUpdatedField, setLastUpdatedField] = useState<string | null>(null);
 
     useEffect(() => {
@@ -94,10 +94,13 @@ export function LiveForm({ data }: LiveFormProps) {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                        <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div className="md:col-span-8 grid grid-cols-1 md:grid-cols-6 gap-3">
                             <InputField label="Ration Card" name="ration_card_type" register={register} highlight={lastUpdatedField === 'ration_card_type'} placeholder="Type..." />
                             <InputField label="Income" name="income_bracket" register={register} highlight={lastUpdatedField === 'income_bracket'} placeholder="Annual..." />
                             <InputField label="Occupation" name="occupation" register={register} highlight={lastUpdatedField === 'occupation'} placeholder="Job..." />
+                            <InputField label="Caste Category" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC..." />
+                            <InputField label="Housing Type" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kucha/Pucca..." />
+                            <InputField label="Location" name="location" register={register} highlight={lastUpdatedField === 'location'} placeholder="State/City..." />
                         </div>
                         
                         <div className="md:col-span-4 h-full">
@@ -145,18 +148,19 @@ export function LiveForm({ data }: LiveFormProps) {
 }
 
 function EligibilityStatus({ data }: { data: any }) {
-    // Check if we have backend-provided eligibility data, otherwise fallback to simple frontend logic
     const backendData = data.scheme_eligibility;
-    
-    const isEligiblePMJAY = backendData ? backendData.pmjay?.eligible : (
-        data.ration_card_type?.toLowerCase().includes('bpl') || 
-        data.ration_card_type?.toLowerCase().includes('antyodaya') ||
-        data.occupation?.toLowerCase().includes('laborer')
-    );
+    const requiredEligibilityFields = [
+        data.age,
+        data.ration_card_type,
+        data.income_bracket,
+        data.occupation,
+        data.caste_category,
+        data.housing_type,
+    ];
+    const requiredFieldsFilled = requiredEligibilityFields.every((value) => String(value ?? '').trim().length > 0);
 
-    const isEligibleState = backendData ? backendData.state_scheme?.eligible : (
-        data.age > 60 || isEligiblePMJAY
-    );
+    const isEligiblePMJAY = Boolean(backendData?.pmjay?.eligible);
+    const isEligibleState = Boolean(backendData?.state_scheme?.eligible);
 
     const reasons = backendData?.pmjay?.reasons || [];
 
@@ -168,6 +172,11 @@ function EligibilityStatus({ data }: { data: any }) {
                     <span className="text-[7px] font-bold text-blue-400/80 bg-blue-500/10 px-1 border border-blue-500/20 rounded">VERIFIED</span>
                 )}
             </div>
+            {!backendData && (
+                <p className="text-[8px] text-white/30 uppercase tracking-wider">
+                    {requiredFieldsFilled ? 'Awaiting scheme verification response...' : 'Fill age, ration card, income, occupation, caste, housing to run verification'}
+                </p>
+            )}
 
             <div className="space-y-1">
                 <div className="flex items-center justify-between">

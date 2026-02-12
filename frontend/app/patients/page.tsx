@@ -13,7 +13,7 @@ export default function PatientsPage() {
     const [patientToDelete, setPatientToDelete] = useState<any | null>(null);
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/ehr/patients')
+        fetch('http://localhost:8003/api/ehr/patients')
             .then(res => res.json())
             .then(data => {
                 setPatients(data);
@@ -35,7 +35,7 @@ export default function PatientsPage() {
         if (!patientToDelete) return;
 
         try {
-            const res = await fetch(`http://localhost:8000/api/ehr/patients/${patientToDelete.id}`, {
+            const res = await fetch(`http://localhost:8003/api/ehr/patients/${patientToDelete.id}`, {
                 method: 'DELETE',
             });
             if (res.ok) {
@@ -103,7 +103,7 @@ export default function PatientsPage() {
                                     </div>
                                 </div>
                                 <span className="text-[8px] font-mono text-white/20 bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
-                                    {patient.id.slice(0, 8)}
+                                    {String(patient.id ?? '').slice(0, 8)}
                                 </span>
                             </div>
 
@@ -308,4 +308,3 @@ function ListSection({ title, items }: any) {
         </div>
     )
 }
-

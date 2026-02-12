@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-const WS_URL = 'ws://localhost:8000/ws/live-consultation';
+const WS_URL = 'ws://localhost:8003/ws/live-consultation';
 
 export const useSocket = (onMessageReceived: (data: any) => void) => {
     const [isConnected, setIsConnected] = useState(false);

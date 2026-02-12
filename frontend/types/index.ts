@@ -5,7 +5,20 @@ export interface Vitals {
     spo2?: string;
 }
 
+export interface SchemeEligibilitySnapshot {
+    pmjay: {
+        eligible: boolean;
+        reasons: string[];
+        confidence: number;
+    };
+    state_scheme: {
+        eligible: boolean;
+        reasons: string[];
+    };
+}
+
 export interface PatientData {
+    id?: number;
     name?: string;
     age?: string;
     gender?: string;
@@ -22,15 +35,27 @@ export interface PatientData {
     ration_card_type?: string;
     income_bracket?: string;
     occupation?: string;
-    scheme_eligibility?: {
-        pmjay: {
-            eligible: boolean;
-            reasons: string[];
-            confidence: number;
-        };
-        state_scheme: {
-            eligible: boolean;
-            reasons: string[];
-        };
+    caste_category?: string;
+    housing_type?: string;
+    location?: string;
+    scheme_eligibility?: SchemeEligibilitySnapshot;
+}
+
+export interface TranscriptItem {
+    id: string;
+    type: 'text' | 'tool';
+    content?: string;
+    timestamp: string;
+    toolInfo?: {
+        field: string;
+        value: unknown;
     };
+}
+
+export interface ScribeSessionSnapshot {
+    patientData: PatientData;
+    transcript: TranscriptItem[];
+    activePatientId?: number | null;
+    entryMode?: 'create' | 'update';
+    updatedAt: string;
 }

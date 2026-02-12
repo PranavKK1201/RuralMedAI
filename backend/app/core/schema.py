@@ -1,6 +1,6 @@
 # backend/app/core/schemas.py
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 class Vitals(BaseModel):
     temperature: Optional[str] = Field(None, description="Body Temperature (e.g., 98.6 F)")
@@ -9,6 +9,8 @@ class Vitals(BaseModel):
     spo2: Optional[str] = Field(None, description="Oxygen Saturation in %")
 
 class PatientData(BaseModel):
+    id: Optional[int] = Field(None, description="Existing patient record ID for updates")
+
     # Demographics
     name: Optional[str] = Field(None, description="Patient's full name")
     age: Optional[str] = Field(None, description="Patient's age in years")
@@ -38,6 +40,8 @@ class PatientData(BaseModel):
     occupation: Optional[str] = Field(None, description="Primary occupation (e.g., Casual Labour, Farmer)")
     caste_category: Optional[str] = Field(None, description="SC/ST/General/OBC")
     housing_type: Optional[str] = Field(None, description="Kucha/Pucca house")
+    location: Optional[str] = Field(None, description="Patient residence location/state")
+    scheme_eligibility: Optional[Dict[str, Any]] = Field(None, description="Computed eligibility snapshot")
 
     # Metadata (Useful for Phase 2 DB storage)
     consultation_id: Optional[str] = None
