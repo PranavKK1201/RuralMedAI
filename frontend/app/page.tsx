@@ -15,6 +15,37 @@ export default function Home() {
     const [transcript, setTranscript] = useState<any[]>([]);
     const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
+    // Resume Logic
+    const [searchParams, setSearchParams] = useState<URLSearchParams | null>(null);
+    useEffect(() => {
+        setSearchParams(new URLSearchParams(window.location.search));
+    }, []);
+
+    useEffect(() => {
+        const patientId = searchParams?.get('patient_id');
+        if (patientId) {
+            console.log(`Resuming session for patient ${patientId}...`);
+            fetch(`http://localhost:8000/api/ehr/patients/${patientId}`)
+                .then(res => res.json())
+                .then(data => {
+                    console.log("Loaded patient data:", data);
+                    setPatientData(data);
+
+                    // Add Summary to Transcript
+                    if (data.transcript_summary) {
+                        const now = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                        setTranscript(prev => [...prev, {
+                            id: 'sys-resume-' + Date.now(),
+                            type: 'text',
+                            content: `**RESUMED SESSION**\n\nIMPORTANT POINTS:\n${data.transcript_summary}`,
+                            timestamp: now
+                        }]);
+                    }
+                })
+                .catch(err => console.error("Failed to load patient", err));
+        }
+    }, [searchParams]);
+
     // Audio Device Handling
     const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
@@ -159,13 +190,23 @@ export default function Home() {
         const now = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setTranscript(prev => [...prev, { id: 'sys-' + Date.now(), type: 'text', content: 'System: Committing record to EHR database...', timestamp: now }]);
 
-        console.log("DEBUG: Committing patientData:", patientData);
+        // Extract full transcript text for summarization
+        const fullTranscriptHistory = transcript
+            .filter(t => t.type === 'text')
+            .map(t => t.content);
+
+        const dataToCommit = {
+            ...patientData,
+            transcript_history: fullTranscriptHistory
+        };
+
+        console.log("DEBUG: Committing patientData:", dataToCommit);
 
         try {
             const response = await fetch('http://localhost:8000/api/ehr/commit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(patientData)
+                body: JSON.stringify(dataToCommit)
             });
 
             const result = await response.json();
@@ -250,7 +291,7 @@ export default function Home() {
                 {/* Left Panel: Clinical Form (65%) */}
                 <div className="flex-1 flex flex-col min-w-0 border-r border-white/5 relative">
                     {/* Form Header REMOVED */}
-                    
+
                     {/* Scrollable Form Content */}
                     <div className="flex-1 overflow-y-auto p-2 scrollbar-hide">
                         <div className="max-w-7xl mx-auto h-full">

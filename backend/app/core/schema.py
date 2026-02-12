@@ -42,3 +42,5 @@ class PatientData(BaseModel):
     # Metadata (Useful for Phase 2 DB storage)
     consultation_id: Optional[str] = None
     timestamp: Optional[str] = None
+    transcript_summary: Optional[str] = Field(None, description="Important points from the conversation transcript")
+    transcript_history: Optional[List[str]] = Field(None, description="Full conversation history for summarization (not stored)")

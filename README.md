@@ -21,7 +21,7 @@ The backend connects to Google Gemini and processes the audio.
     ```
 3.  Start the server:
     ```bash
-    python -m uvicorn app.main:app --reload --port 8000
+    python -m uvicorn app.main:app --reload --port 8001
     ```
 
 ### Terminal 2: Frontend
