@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Activity, Calendar, FileText, Search, ClipboardList, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, Activity, Calendar, FileText, Search, ClipboardList, Trash2, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import { getAyushmanTemplate, getCGHSTemplate, getECHSTemplate } from '../utils/documentTemplates';
 
 export default function PatientsPage() {
     const [patients, setPatients] = useState<any[]>([]);
@@ -11,6 +12,37 @@ export default function PatientsPage() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
     const [patientToDelete, setPatientToDelete] = useState<any | null>(null);
+    const [patientToExport, setPatientToExport] = useState<any | null>(null);
+
+    const handleExport = (scheme: 'AYUSHMAN' | 'CGHS' | 'ECHS') => {
+        if (!patientToExport) return;
+
+        let htmlContent = '';
+        switch (scheme) {
+            case 'AYUSHMAN':
+                htmlContent = getAyushmanTemplate(patientToExport);
+                break;
+            case 'CGHS':
+                htmlContent = getCGHSTemplate(patientToExport);
+                break;
+            case 'ECHS':
+                htmlContent = getECHSTemplate(patientToExport);
+                break;
+        }
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+            printWindow.focus();
+            // Allow time for styles to load/render implies immediate print might need a slight delay or onload
+            setTimeout(() => {
+                printWindow.print();
+                printWindow.close();
+            }, 500);
+        }
+        setPatientToExport(null);
+    };
 
     useEffect(() => {
         fetch('http://localhost:8003/api/ehr/patients')
@@ -133,11 +165,32 @@ export default function PatientsPage() {
                                         {new Date(patient.created_at).toLocaleDateString()}
                                     </div>
                                     <button
+                                        className="p-1.5 text-white/20 hover:text-emerald-500 hover:bg-emerald-500/5 rounded transition-all opacity-0 group-hover:opacity-100 mr-1"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setPatientToExport(patient);
+                                        }}
+                                        title="Export Official Document"
+                                    >
+                                        <FileText className="w-3 h-3" />
+                                    </button>
+                                    <Link
+                                        href={`/?patient_id=${patient.id}`}
+                                        className="p-1.5 text-white/20 hover:text-blue-500 hover:bg-blue-500/5 rounded transition-all opacity-0 group-hover:opacity-100 mr-1"
+                                        onClick={(e) => e.stopPropagation()}
+                                        title="Resume Session"
+                                    >
+                                        <div className="w-3 h-3 border border-current rounded-sm flex items-center justify-center">
+                                            <div className="w-0.5 h-0.5 bg-current rounded-full" />
+                                        </div>
+                                    </Link>
+                                    <button
                                         className="p-1.5 text-white/20 hover:text-rose-500 hover:bg-rose-500/5 rounded transition-all opacity-0 group-hover:opacity-100"
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setPatientToDelete(patient);
                                         }}
+                                        title="Delete Record"
                                     >
                                         <Trash2 className="w-3 h-3" />
                                     </button>
@@ -236,6 +289,72 @@ export default function PatientsPage() {
                                     </div>
                                 </div>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Export Scheme Selection Modal */}
+            <AnimatePresence>
+                {patientToExport && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-[#050505] border border-white/10 rounded-xl shadow-2xl w-full max-w-md p-6 space-y-6"
+                        >
+                            <div className="space-y-2 text-center">
+                                <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mx-auto border border-emerald-500/20">
+                                    <FileText className="w-6 h-6" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white tracking-tight">Export Official Document</h3>
+                                <p className="text-sm text-white/40 font-mono">
+                                    Select the government scheme format for <span className="text-white font-bold">{patientToExport.name}</span>
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3">
+                                <button
+                                    onClick={() => handleExport('AYUSHMAN')}
+                                    className="group flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-emerald-500/50 transition-all"
+                                >
+                                    <div className="text-left">
+                                        <div className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">Ayushman Bharat (PM-JAY)</div>
+                                        <div className="text-[10px] text-white/30 font-mono">Discharge Summary Format</div>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-emerald-500" />
+                                </button>
+
+                                <button
+                                    onClick={() => handleExport('CGHS')}
+                                    className="group flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-blue-500/50 transition-all"
+                                >
+                                    <div className="text-left">
+                                        <div className="text-sm font-bold text-white group-hover:text-blue-400 transition-colors">CGHS Prescription</div>
+                                        <div className="text-[10px] text-white/30 font-mono">Central Govt Health Scheme</div>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-blue-500" />
+                                </button>
+
+                                <button
+                                    onClick={() => handleExport('ECHS')}
+                                    className="group flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-orange-500/50 transition-all"
+                                >
+                                    <div className="text-left">
+                                        <div className="text-sm font-bold text-white group-hover:text-orange-400 transition-colors">ECHS Medical Slip</div>
+                                        <div className="text-[10px] text-white/30 font-mono">Ex-Servicemen Contributory Health</div>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-orange-500" />
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setPatientToExport(null)}
+                                className="w-full py-3 rounded-lg border border-white/10 hover:bg-white/5 text-xs font-bold uppercase tracking-widest text-white/40 hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
                         </motion.div>
                     </div>
                 )}

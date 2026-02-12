@@ -31,6 +31,7 @@ def init_db():
             tentative_doctor_diagnosis TEXT,
             initial_llm_diagnosis TEXT,
             medications TEXT, -- JSON
+            transcript_summary TEXT,
             ration_card_type TEXT,
             income_bracket TEXT,
             occupation TEXT,
@@ -73,6 +74,9 @@ def init_db():
     try:
         cursor.execute("ALTER TABLE patients ADD COLUMN location TEXT")
     except sqlite3.OperationalError: pass
+    try:
+        cursor.execute("ALTER TABLE patients ADD COLUMN transcript_summary TEXT")
+    except sqlite3.OperationalError: pass
 
     conn.commit()
     conn.close()
@@ -99,9 +103,9 @@ def save_patient(data: PatientData):
             temp, bp, pulse, spo2,
             medical_history, family_history, allergies, 
             tentative_doctor_diagnosis, initial_llm_diagnosis,
-            medications,
+            medications, transcript_summary,
             ration_card_type, income_bracket, occupation, caste_category, housing_type, location, scheme_eligibility
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
         data.name,
         data.age,
@@ -118,6 +122,7 @@ def save_patient(data: PatientData):
         data.tentative_doctor_diagnosis,
         data.initial_llm_diagnosis,
         to_json(data.medications),
+        data.transcript_summary,
         data.ration_card_type,
         data.income_bracket,
         data.occupation,
@@ -227,3 +232,30 @@ def get_all_patients():
     
     conn.close()
     return patients
+
+def get_patient_by_id(patient_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM patients WHERE id = ?', (patient_id,))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        p = dict(row)
+        for json_field in ['symptoms', 'medical_history', 'family_history', 'allergies', 'medications']:
+            if p.get(json_field):
+                try:
+                    p[json_field] = json.loads(p[json_field])
+                except:
+                    p[json_field] = []
+        return p
+    return None
+
+def update_patient_summary(patient_id: int, summary: str):
+    """Update only the transcript_summary for an existing patient."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('UPDATE patients SET transcript_summary = ? WHERE id = ?', (summary, patient_id))
+    conn.commit()
+    conn.close()
+    print(f"Updated summary for patient {patient_id}")
