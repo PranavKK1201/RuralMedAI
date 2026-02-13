@@ -215,7 +215,7 @@ export default function PatientsPage() {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.98 }}
-                            className="bg-[#050505] border border-slate-200 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+                            className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
                         >
                             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
                                 <div className="flex items-center gap-4">
@@ -302,7 +302,7 @@ export default function PatientsPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-[#050505] border border-slate-200 rounded-xl shadow-2xl w-full max-w-md p-6 space-y-6"
+                            className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-md p-6 space-y-6"
                         >
                             <div className="space-y-2 text-center">
                                 <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 mx-auto border border-emerald-500/20">

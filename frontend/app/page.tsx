@@ -463,7 +463,7 @@ export default function Home() {
                     {/* Form Header REMOVED */}
 
                     {/* Scrollable Form Content */}
-                    <div className="flex-1 overflow-hidden p-2">
+                    <div className="flex-1 overflow-y-auto p-2">
                         <div className="max-w-7xl mx-auto h-full">
                             <LiveForm key={formInstanceKey} data={patientData} />
                         </div>
