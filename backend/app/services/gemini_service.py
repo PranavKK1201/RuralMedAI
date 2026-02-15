@@ -20,18 +20,33 @@ client = genai.Client(api_key=GEMINI_API_KEY, http_options={'api_version': 'v1al
 # Tool Definitions
 update_patient_data = {
     "name": "update_patient_data",
-    "description": "Update patient medical data fields in the realtime form.",
+    "description": """Update patient medical data fields in the realtime form.
+    
+    CRITICAL: For standardized fields, you MUST normalize to these values:
+    
+    - housing_type: ONLY use: 'kucha', 'pucca', 'semi-pucca'
+      (Map: kaccha/kucha/mud/thatch → 'kucha', pucca/pukka/pakka → 'pucca')
+    
+    - caste_category: ONLY use: 'sc', 'st', 'obc', 'general'
+      (Map: scheduled caste → 'sc', scheduled tribe → 'st')
+    
+    - gender: ONLY use: 'male', 'female', 'other'
+    
+    - ration_card_type: Extract as spoken (e.g., 'BPL card', 'Antyodaya', 'AAY', 'yellow card', 'no card')
+    
+    - income: Extract as number or range as stated (e.g., '50000', '1 lakh', '2-3 lakhs per year')
+    """,
     "behavior": "NON_BLOCKING",
     "parameters": {
         "type": "OBJECT",
         "properties": {
             "field": {
                 "type": "STRING",
-                "description": "The field to update (e.g., name, age, gender, caste_category, ration_card_type, income_bracket, occupation, housing_type, location, chief_complaint, symptoms, medical_history, family_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2)"
+                "description": "The field to update: name, age, gender, caste_category, ration_card_type, income, occupation, housing_type, location, chief_complaint, symptoms, medical_history, family_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2"
             },
             "value": {
                 "type": "STRING", 
-                "description": "The new value for the field."
+                "description": "The normalized value for the field. MUST use exact allowed values for housing_type, caste_category, and gender."
             }
         },
         "required": ["field", "value"]
@@ -41,11 +56,51 @@ update_patient_data = {
 tools = [{"function_declarations": [update_patient_data]}]
 
 class GeminiService:
-    SCHEME_REQUIRED_FIELDS = ['ration_card_type', 'income_bracket', 'occupation', 'age', 'caste_category', 'housing_type']
+    SCHEME_REQUIRED_FIELDS = ['ration_card_type', 'income', 'occupation', 'age', 'caste_category', 'housing_type']
 
     def __init__(self):
         self.session = None
         self.current_patient_data = {}
+    
+    @staticmethod
+    def _normalize_value(field: str, value: str) -> str:
+        """Normalize values to match scheme eligibility criteria across languages"""
+        if not isinstance(value, str):
+            return value
+        
+        value_lower = value.lower().strip()
+        
+        # Housing type normalization (cross-language) - CRITICAL for D1 criteria
+        if field == "housing_type":
+            if any(term in value_lower for term in ['kaccha', 'kucha', 'kacha', 'kutcha', 'mud', 'thatch', 'hut', 'temporary', 'कच्चा घर', 'मिट्टी का घर', 'குடிசை', 'கச்சா', 'மண் வீடு']):
+                return 'kucha'
+            elif any(term in value_lower for term in ['pucca', 'pukka', 'pakka', 'पक्का', 'concrete', 'brick']):
+                return 'pucca'
+            elif 'semi' in value_lower:
+                return 'semi-pucca'
+        
+        # Caste category normalization - CRITICAL for D4 criteria
+        elif field == "caste_category":
+            if 'sc' in value_lower or 'scheduled caste' in value_lower:
+                return 'sc'
+            elif 'st' in value_lower or 'scheduled tribe' in value_lower:
+                return 'st'
+            elif 'obc' in value_lower or 'backward' in value_lower:
+                return 'obc'
+            elif 'general' in value_lower:
+                return 'general'
+        
+        # Gender normalization
+        elif field == "gender":
+            if any(term in value_lower for term in ['male', 'पुरुष', 'purush', 'm']):
+                return 'male'
+            elif any(term in value_lower for term in ['female', 'महिला', 'mahila', 'f']):
+                return 'female'
+            elif 'other' in value_lower:
+                return 'other'
+        
+        # No normalization needed for ration_card_type and income - keep as spoken
+        return value
 
     def _scheme_inputs_ready(self):
         for field in self.SCHEME_REQUIRED_FIELDS:
@@ -155,6 +210,9 @@ class GeminiService:
                                     elif field in ["symptoms", "medications", "allergies", "medical_history", "family_history"]:
                                         # Handle comma-separated list strings
                                         value = [item.strip() for item in value.split(",")]
+                                    else:
+                                        # Normalize standardized field values
+                                        value = self._normalize_value(field, value)
 
                                 print(f"Tool Call: update_patient_data({field}, {value})")
 

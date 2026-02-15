@@ -101,13 +101,15 @@ export function LiveForm({ data }: LiveFormProps) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1px_1fr] gap-3 items-center">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <InputField label="Ration Card" name="ration_card_type" register={register} highlight={lastUpdatedField === 'ration_card_type'} placeholder="Yes/No" />
-                            <InputField label="Income" name="income_bracket" register={register} highlight={lastUpdatedField === 'income_bracket'} placeholder="Per month" />
-                            <InputField label="Occupation" name="occupation" register={register} highlight={lastUpdatedField === 'occupation'} placeholder="Occupation" />
-                            <InputField label="Caste Category" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC" />
-                            <InputField label="Housing Type" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kutcha/Pucca" />
-                            <InputField label="Location" name="location" register={register} highlight={lastUpdatedField === 'location'} placeholder="State/City" />
+                        <div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-slate-800">
+                                <InputField label="Ration Card" name="ration_card_type" register={register} highlight={lastUpdatedField === 'ration_card_type'} placeholder="Yes/No" />
+                                <InputField label="Income" name="income" register={register} highlight={lastUpdatedField === 'income'} placeholder="Per month" />
+                                <InputField label="Occupation" name="occupation" register={register} highlight={lastUpdatedField === 'occupation'} placeholder="Occupation" />
+                                <InputField label="Caste Category" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC" />
+                                <InputField label="Housing Type" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kutcha/Pucca" />
+                                <InputField label="Location" name="location" register={register} highlight={lastUpdatedField === 'location'} placeholder="State/City" />
+                            </div>
                         </div>
 
                         <div className="hidden md:block w-px h-[82%] bg-slate-300 self-center" />
@@ -154,8 +156,8 @@ export function LiveForm({ data }: LiveFormProps) {
                         />
                     </div>
                 </section>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 
@@ -164,7 +166,7 @@ function EligibilityStatus({ data }: { data: any }) {
     const requiredEligibilityFields = [
         data.age,
         data.ration_card_type,
-        data.income_bracket,
+        data.income,
         data.occupation,
         data.caste_category,
         data.housing_type,

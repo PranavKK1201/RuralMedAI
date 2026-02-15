@@ -9,7 +9,7 @@ export type PatientFieldKey =
     | 'ration_card_type'
     | 'caste_category'
     | 'housing_type'
-    | 'income_bracket'
+    | 'income'
     | 'military_status'
     | 'pregnancy_status'
     | 'scheme_verification';
@@ -65,7 +65,7 @@ interface EligibilityContext {
     hasAge: boolean;
     hasGender: boolean;
     hasRationCard: boolean;
-    hasIncomeBracket: boolean;
+    hasIncome: boolean;
     hasOccupation: boolean;
     hasCasteCategory: boolean;
     hasHousingType: boolean;
@@ -122,9 +122,15 @@ function lower(value: unknown) {
     return text(value).toLowerCase();
 }
 
+function isNegativeSignal(value: unknown) {
+    const raw = lower(value);
+    return ['no', 'none', 'nahi', 'not present', 'nil', 'नहीं', 'नही'].includes(raw);
+}
+
 function hasAffirmativeSignal(value: unknown) {
     const raw = lower(value);
     if (!raw) return false;
+    if (isNegativeSignal(raw)) return false;
     const compact = raw.replace(/[_-]+/g, ' ');
     return /\b(yes|y|haan|ha|present|available|true|verified|exists)\b/.test(compact);
 }
@@ -200,9 +206,9 @@ function buildContext(data: PatientData, transcript: TranscriptItem[]): Eligibil
     const rationCard = lower(data.ration_card_type);
     const caste = lower(data.caste_category);
     const housing = lower(data.housing_type);
-    const incomeText = lower(data.income_bracket);
-    const incomeValue = inferIncome(data.income_bracket);
-    const monthlyIncome = inferMonthlyIncome(data.income_bracket);
+    const incomeText = lower(data.income);
+    const incomeValue = inferIncome(data.income);
+    const monthlyIncome = inferMonthlyIncome(data.income);
 
     const hasDiagnosis = Boolean(text(data.tentative_doctor_diagnosis) || text(data.initial_llm_diagnosis));
 
@@ -216,7 +222,7 @@ function buildContext(data: PatientData, transcript: TranscriptItem[]): Eligibil
         hasAge: Boolean(text(data.age)),
         hasGender: Boolean(text(data.gender)),
         hasRationCard: Boolean(text(data.ration_card_type)),
-        hasIncomeBracket: Boolean(text(data.income_bracket)),
+        hasIncome: Boolean(text(data.income)),
         hasOccupation: Boolean(text(data.occupation)),
         hasCasteCategory: Boolean(text(data.caste_category)),
         hasHousingType: Boolean(text(data.housing_type)),
@@ -226,9 +232,9 @@ function buildContext(data: PatientData, transcript: TranscriptItem[]): Eligibil
         isWoman: ['female', 'woman', 'f'].some((token) => gender.includes(token)),
         isPregnant: ['pregnan', 'antenatal', 'gestation', 'labour pain', 'delivery'].some((token) => clinicalText.includes(token)),
         isSeniorCitizen: age !== null && age >= 60,
-        isPriorityRationCard: ['bpl', 'antyodaya', 'aay', 'yellow', 'phh', 'priority'].some((token) => rationCard.includes(token)) || hasAffirmativeSignal(rationCard),
+        isPriorityRationCard: (rationCard !== '' && !isNegativeSignal(rationCard)) || ['bpl', 'antyodaya', 'aay', 'yellow', 'phh', 'priority'].some((token) => rationCard.includes(token)) || hasAffirmativeSignal(rationCard),
         isScOrSt: ['sc', 'st', 'scheduled caste', 'scheduled tribe'].some((token) => caste.includes(token)) || hasAffirmativeSignal(caste),
-        isKuchaHousing: ['kucha', 'kutcha', 'mud', 'thatch'].some((token) => housing.includes(token)) || hasAffirmativeSignal(housing),
+        isKuchaHousing: ['kucha', 'kutcha', 'mud', 'thatch', 'hut', 'temporary', 'कच्चा घर', 'मिट्टी का घर', 'குடிசை', 'கச்சா', 'மண் வீடு'].some((token) => housing.includes(token)) || hasAffirmativeSignal(housing),
         isManualLabor: ['labor', 'labour', 'manual', 'daily wage', 'migrant worker'].some((token) => occupation.includes(token)) || hasAffirmativeSignal(occupation),
         isEsicOccupation: ['employee', 'worker', 'factory', 'industrial', 'staff', 'salaried', 'private job'].some((token) => occupation.includes(token)),
         isGovernmentEmployee: ['government', 'govt', 'central service', 'state service', 'pensioner'].some((token) => occupation.includes(token)),
@@ -262,11 +268,21 @@ function evaluateScheme(definition: SchemeDefinition, ctx: EligibilityContext): 
     const metCriteriaCount = criteria.filter((item) => item.met).length;
     const totalCriteriaCount = criteria.length;
     const metCriteriaRatio = totalCriteriaCount > 0 ? metCriteriaCount / totalCriteriaCount : 0;
-    const eligibilityBand: SchemeEvaluation['eligibilityBand'] = eligible
-        ? 'eligible'
-        : metCriteriaRatio >= 0.75
-            ? 'likely_not_eligible'
-            : 'not_eligible';
+
+    // Logic for tighter bands: 
+    // Even if 'eligible' is true, if it's based on very few criteria (e.g. 1/5), show as 'likely_not_eligible' (Possible) 
+    // unless it's a backend verification match.
+    let eligibilityBand: SchemeEvaluation['eligibilityBand'] = 'not_eligible';
+
+    if (eligible) {
+        if (metCriteriaCount >= 2 || ctx.backendPmjayEligible) {
+            eligibilityBand = 'eligible';
+        } else {
+            eligibilityBand = 'likely_not_eligible'; // Show as "Possibly eligible"
+        }
+    } else if (metCriteriaRatio >= 0.5) {
+        eligibilityBand = 'likely_not_eligible';
+    }
 
     return {
         id: definition.id,
@@ -356,7 +372,11 @@ const SCHEME_DEFINITIONS: SchemeDefinition[] = [
                 test: (ctx) => ctx.hasClinicalSummary,
             },
         ],
-        eligibilityRule: (criteria, ctx) => ctx.backendPmjayEligible || criteria.some((item) => item.met && item.id !== 'pmjay-backend'),
+        eligibilityRule: (criteria, ctx) => {
+            const deprivationMarkersMet = criteria.filter(c => c.met && c.id !== 'pmjay-backend').length;
+            // PM-JAY is eligible if backend says yes OR if at least 1 strong deprivation marker is met
+            return ctx.backendPmjayEligible || deprivationMarkersMet >= 1;
+        },
     },
     {
         id: 'esic',
@@ -372,7 +392,7 @@ const SCHEME_DEFINITIONS: SchemeDefinition[] = [
             },
             {
                 id: 'esic-income',
-                fieldKey: 'income_bracket',
+                fieldKey: 'income',
                 label: 'Monthly wage appears within ESI threshold (~₹21,000).',
                 description: 'Screening uses captured income text; final wage validation happens at enrollment.',
                 test: (ctx) => ctx.monthlyIncome !== null && ctx.monthlyIncome <= 21000,
@@ -433,7 +453,7 @@ const SCHEME_DEFINITIONS: SchemeDefinition[] = [
             },
             {
                 id: 'mjpjay-income',
-                fieldKey: 'income_bracket',
+                fieldKey: 'income',
                 label: 'Income appears within low-income coverage range.',
                 description: 'Income capture supports preliminary scheme fit.',
                 test: (ctx) => ctx.isLowIncome,
@@ -501,7 +521,7 @@ const SCHEME_DEFINITIONS: SchemeDefinition[] = [
             },
             {
                 id: 'aarogyasri-income',
-                fieldKey: 'income_bracket',
+                fieldKey: 'income',
                 label: 'Income appears within low-income range.',
                 description: 'Low-income capture supports eligibility screening.',
                 test: (ctx) => ctx.isLowIncome,
@@ -562,7 +582,7 @@ const SCHEME_DEFINITIONS: SchemeDefinition[] = [
         criteria: [
             {
                 id: 'cmchis-income',
-                fieldKey: 'income_bracket',
+                fieldKey: 'income',
                 label: 'Income appears within public coverage range.',
                 description: 'CMCHIS screening considers household income limits.',
                 test: (ctx) => ctx.isLowIncome,
@@ -637,7 +657,7 @@ const SCHEME_DEFINITIONS: SchemeDefinition[] = [
             },
             {
                 id: 'kasp-income',
-                fieldKey: 'income_bracket',
+                fieldKey: 'income',
                 label: 'Income indicates financially vulnerable household.',
                 description: 'Low-income household marker supports KASP screening.',
                 test: (ctx) => ctx.isLowIncome,
@@ -705,7 +725,7 @@ const SCHEME_DEFINITIONS: SchemeDefinition[] = [
             },
             {
                 id: 'bsky-income',
-                fieldKey: 'income_bracket',
+                fieldKey: 'income',
                 label: 'Income indicates vulnerable household.',
                 description: 'Income marker is used as preliminary screening signal.',
                 test: (ctx) => ctx.isLowIncome,
@@ -950,7 +970,7 @@ export function buildEligibilityWorkspace(data: PatientData, transcript: Transcr
         { key: 'location', label: 'Location', value: text(data.location) || 'Not captured' },
         { key: 'occupation', label: 'Occupation', value: text(data.occupation) || 'Not captured' },
         { key: 'ration_card_type', label: 'Ration card type', value: text(data.ration_card_type) || 'Not captured' },
-        { key: 'income_bracket', label: 'Income bracket', value: text(data.income_bracket) || 'Not captured' },
+        { key: 'income', label: 'Income', value: text(data.income) || 'Not captured' },
         { key: 'caste_category', label: 'Caste category', value: text(data.caste_category) || 'Not captured' },
         { key: 'housing_type', label: 'Housing type', value: text(data.housing_type) || 'Not captured' },
         { key: 'military_status', label: 'Military/veteran status', value: context.isDefenseBeneficiary ? 'Yes' : 'No' },

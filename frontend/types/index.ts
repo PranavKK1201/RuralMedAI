@@ -33,7 +33,7 @@ export interface PatientData {
     medications?: string[];
     // Eligibility Fields
     ration_card_type?: string;
-    income_bracket?: string;
+    income?: string;
     occupation?: string;
     caste_category?: string;
     housing_type?: string;

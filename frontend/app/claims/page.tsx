@@ -110,7 +110,7 @@ export default function ClaimsPage() {
             tentative_doctor_diagnosis: record.tentative_doctor_diagnosis,
             initial_llm_diagnosis: record.initial_llm_diagnosis,
             ration_card_type: record.ration_card_type,
-            income_bracket: record.income_bracket,
+            income: record.income,
             occupation: record.occupation,
             caste_category: record.caste_category,
             housing_type: record.housing_type,
@@ -349,7 +349,7 @@ function SchemeDetails({
     const isLikelyNotEligible = scheme.eligibilityBand === 'likely_not_eligible';
 
     return (
-            <div className="space-y-4">
+        <div className="space-y-4">
             <div className="border-b border-slate-200 pb-3">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                     <h2 className="text-lg font-semibold text-slate-900">{scheme.name}</h2>
@@ -373,6 +373,9 @@ function SchemeDetails({
                 <p className="text-[12px] text-slate-500 mt-1">{scheme.description}</p>
                 <p className="text-[11px] text-amber-800 mt-2 border border-amber-400/40 bg-amber-100 rounded px-2.5 py-1.5">
                     Signal-based match: Yes/No profile markers are treated as preliminary. Exact scheme criteria and document classes need manual verification.
+                </p>
+                <p className="text-[11px] text-amber-800 mt-2 border border-amber-400/40 bg-amber-100 rounded px-2.5 py-1.5">
+                    ⚠️ Verify Ration Card: Ensure card type is explicitly correct (BPL/AAY/etc.) before proceeding with claim filing.
                 </p>
             </div>
 
