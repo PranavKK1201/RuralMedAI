@@ -11,17 +11,17 @@ You need to run two separate terminals: one for the **Backend** (Brain) and one 
 ### Terminal 1: Backend
 The backend connects to Google Gemini and processes the audio.
 
-1.  Navigate to the backend folder:
-    ```bash
-    cd backend
-    ```
-2.  **Install dependencies:**
+1.  **Install dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
+2.  Navigate to the backend folder:
+    ```bash
+    cd backend
+    ```
 3.  Start the server:
     ```bash
-    python -m uvicorn app.main:app --reload --port 8001
+    python -m uvicorn app.main:app --reload --port 8003
     ```
 
 ### Terminal 2: Frontend

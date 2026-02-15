@@ -12,7 +12,7 @@ export function AudioVisualizer({ isRecording }: { isRecording: boolean }) {
             if (canvas && ctx) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 // Draw static baseline
-                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.fillStyle = 'hsla(236, 27%, 22%, 0.1)';
                 ctx.fillRect(0, canvas.height / 2 - 1, canvas.width, 2);
             }
             return;
@@ -33,7 +33,13 @@ export function AudioVisualizer({ isRecording }: { isRecording: boolean }) {
             const width = (canvas.width - ((bars - 1) * gap)) / bars;
 
             for (let i = 0; i < bars; i++) {
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+                const t = (i / bars);
+                const r1 = 35, g1 = 39, b1 = 71;   // primary navy hsl(236,27%,22%)
+                const r2 = 32, g2 = 178, b2 = 170;  // accent teal hsl(188,72%,44%)
+                const r = Math.round(r1 + (r2 - r1) * t);
+                const g = Math.round(g1 + (g2 - g1) * t);
+                const b = Math.round(b1 + (b2 - b1) * t);
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.7)`;
 
                 // Simulate audio frequency data with smoother randomness
                 const seed = Date.now() / 200;
@@ -59,7 +65,7 @@ export function AudioVisualizer({ isRecording }: { isRecording: boolean }) {
     }, [isRecording]);
 
     return (
-        <div className="w-full bg-white/5 rounded-md p-1 border border-white/5">
+        <div className="w-full bg-primary/5 rounded-md p-1 border border-primary/10">
             <canvas
                 ref={canvasRef}
                 width={300}

@@ -179,7 +179,7 @@ function EligibilityStatus({ data }: { data: any }) {
     const reasons = backendData?.pmjay?.reasons || [];
 
     return (
-        <div className="bg-slate-50 border border-slate-300 rounded-xl p-2.5 w-full min-h-[128px] space-y-2">
+        <div className="bg-slate-200 border border-slate-300 rounded-xl p-2.5 w-full min-h-[128px] space-y-2">
             <div className="flex items-center justify-between">
                 <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-[0.2em]">Eligibility Record</span>
                 {backendData && (
@@ -226,21 +226,25 @@ function StatusRow({ label, eligible }: { label: string; eligible: boolean }) {
     );
 }
 
+const DARK_TEXT_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12'%3E%3Cline x1='1' y1='0' x2='7' y2='0' stroke='black' stroke-width='1.5'/%3E%3Cline x1='4' y1='0' x2='4' y2='12' stroke='black' stroke-width='1.5'/%3E%3Cline x1='1' y1='12' x2='7' y2='12' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E") 4 6, text`;
+
 function InputField({ label, name, register, highlight, isTextArea, placeholder, minHeight = 'h-[44px]' }: any) {
     return (
         <div className="relative group w-full flex flex-col">
             <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-[0.2em] mb-1 px-0.5">{label}</label>
-            <div className={`relative transition-all duration-300 rounded-xl border ${highlight ? 'border-cyan-300 bg-cyan-50' : 'border-slate-300 bg-slate-50'}`}>
+            <div className={`relative transition-all duration-300 rounded-xl border ${highlight ? 'border-cyan-300 bg-cyan-50' : 'border-slate-300 bg-slate-200'}`}>
                 {isTextArea ? (
                     <textarea
                         {...register(name)}
                         placeholder={placeholder}
+                        style={{ cursor: DARK_TEXT_CURSOR }}
                         className={`w-full p-2.5 text-[13px] bg-transparent outline-none placeholder:text-slate-400 ${minHeight} resize-none leading-relaxed font-mono text-slate-800`}
                     />
                 ) : (
                     <input
                         {...register(name)}
                         placeholder={placeholder}
+                        style={{ cursor: DARK_TEXT_CURSOR }}
                         className="w-full h-9 p-2.5 text-[13px] bg-transparent outline-none placeholder:text-slate-400 font-mono text-slate-800"
                     />
                 )}
@@ -251,11 +255,12 @@ function InputField({ label, name, register, highlight, isTextArea, placeholder,
 
 function VitalField({ label, name, register, highlight, unit }: any) {
     return (
-        <div className={`p-2 rounded-xl border transition-all duration-300 h-[66px] flex flex-col justify-between ${highlight ? 'border-cyan-300 bg-cyan-50' : 'border-slate-300 bg-slate-50'}`}>
+        <div className={`p-2 rounded-xl border transition-all duration-300 h-[66px] flex flex-col justify-between ${highlight ? 'border-cyan-300 bg-cyan-50' : 'border-slate-300 bg-slate-200'}`}>
             <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{label}</label>
             <div className="flex items-end gap-1.5">
                 <input
                     {...register(name)}
+                    style={{ cursor: DARK_TEXT_CURSOR }}
                     className="w-full bg-transparent text-xl font-semibold font-mono outline-none text-slate-800 placeholder:text-slate-300 leading-none"
                     placeholder="--"
                 />
@@ -271,7 +276,7 @@ function ListSection({ title, items, placeholder }: any) {
     return (
         <div className="space-y-1.5 flex flex-col h-full">
             <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{title}</label>
-            <div className="p-2 bg-slate-50 min-h-[56px] rounded-xl border border-slate-300 flex-1">
+            <div className="p-2 bg-slate-200 min-h-[56px] rounded-xl border border-slate-300 flex-1" style={{ cursor: DARK_TEXT_CURSOR }}>
                 <AnimatePresence mode="popLayout">
                     {list.length ? (
                         <div className="flex flex-col gap-1.5">
