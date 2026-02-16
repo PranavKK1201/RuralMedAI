@@ -173,53 +173,45 @@ export default function ClaimsPage() {
     }, []);
 
     return (
-        <main className="h-screen bg-background text-foreground overflow-hidden px-3 py-3 md:px-4 md:py-4">
-            <div className="h-full flex flex-col max-w-[1700px] mx-auto">
-                <header className="flex-none border border-slate-200 rounded-lg bg-slate-50 px-4 py-3 mb-3 grid grid-cols-1 xl:grid-cols-3 gap-3 items-center">
-                    <div className="justify-self-start">
-                        <Link
-                            href="/"
-                            className="inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.2em] text-slate-500 hover:text-slate-900 transition-colors"
-                        >
-                            <ArrowLeft className="w-3 h-3" /> Back to Scribe
-                        </Link>
-                        <h1 className="text-xl font-bold text-slate-900 mt-1">Scheme Eligibility</h1>
-                        <p className="text-[11px] text-slate-500">Eligibility is computed from captured patient data only</p>
-                    </div>
-
-                    <div className="justify-self-center w-full max-w-md">
-                        <label className="block text-[10px] uppercase tracking-[0.2em] text-slate-500 mb-1.5">Patient selector</label>
+        <main className="h-screen bg-[#f8fafc] text-foreground overflow-hidden flex flex-col">
+            <div className="flex-none bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                    <h1 className="text-sm font-bold tracking-tight text-slate-900">Insurance Eligibility</h1>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-lg border border-slate-200">
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest text-nowrap">Patient Selector</span>
                         <select
                             value={selectedPatientKey}
                             onChange={(e) => {
                                 setSelectedPatientKey(e.target.value);
                                 setDocumentChecks({});
                             }}
-                            className="w-full h-9 px-3 rounded border border-slate-200 bg-white text-sm text-slate-900 outline-none focus:border-cyan-400/40"
+                            className="bg-transparent text-[11px] font-semibold text-slate-900 focus:outline-none cursor-pointer"
                         >
-                            <option value="live" className="bg-[#f6f7fb] text-slate-900">Live session patient</option>
+                            <option value="live">Live Session</option>
                             {archivedPatients.map((patient) => (
-                                <option key={patient.id} value={`ehr-${patient.id}`} className="bg-[#f6f7fb] text-slate-900">
+                                <option key={patient.id} value={`ehr-${patient.id}`}>
                                     {patient.name || 'Unnamed'} • ID {patient.id}
                                 </option>
                             ))}
                         </select>
                     </div>
+                </div>
 
-                    <div className="justify-self-end flex items-center gap-2">
-                        <div className="text-[10px] font-mono text-slate-500 border border-slate-200 rounded px-2 py-1">
-                            Session sync: {lastSyncedAt}
-                        </div>
-                        <button
-                            onClick={handleRefresh}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-slate-200 bg-white/5 hover:bg-white/10 text-[10px] uppercase tracking-wider font-bold"
-                        >
-                            <RefreshCw className="w-3 h-3" /> Refresh
-                        </button>
+                <div className="flex items-center gap-3">
+                    <div className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                        Sync: {lastSyncedAt}
                     </div>
-                </header>
+                    <button
+                        onClick={handleRefresh}
+                        className="p-1 px-3 flex items-center gap-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-all text-[10px] font-bold uppercase tracking-widest"
+                    >
+                        <RefreshCw className="w-3 h-3" /> Refresh
+                    </button>
+                </div>
+            </div>
 
-                <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-3">
+            <div className="flex-1 p-3 md:p-4 h-full flex flex-col max-w-[1700px] mx-auto overflow-hidden">
+                <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-3 overflow-hidden">
                     <section className="xl:col-span-4 min-h-0 border border-slate-200 rounded-lg bg-slate-50 p-3 overflow-y-auto">
                         <h2 className="text-sm font-semibold text-slate-900 mb-2">Patient biodata</h2>
                         <p className="text-[11px] text-slate-500 mb-3">Fields turn green/red based on selected scheme criteria.</p>
