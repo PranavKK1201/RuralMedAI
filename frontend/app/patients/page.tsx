@@ -139,8 +139,8 @@ export default function PatientsPage() {
                                             <Activity className="w-2.5 h-2.5" /> Biometrics
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 text-[10px]">
-                                            <div><span className="text-slate-400 font-mono">BP:</span> <span className="font-mono text-slate-600">{patient.bp || "--"}</span></div>
-                                            <div><span className="text-slate-400 font-mono">HR:</span> <span className="font-mono text-slate-600">{patient.pulse || "--"}</span></div>
+                                            <div><span className="text-slate-400 font-mono">BP:</span> <span className="font-mono text-slate-600">{patient.vitals?.blood_pressure || "--"}</span></div>
+                                            <div><span className="text-slate-400 font-mono">HR:</span> <span className="font-mono text-slate-600">{patient.vitals?.pulse || "--"}</span></div>
                                         </div>
                                     </div>
 
@@ -237,10 +237,10 @@ export default function PatientsPage() {
                                                 <Activity className="w-3 h-3" /> Biometrics
                                             </h3>
                                             <div className="grid grid-cols-1 gap-2">
-                                                <DetailBox label="Blood Pressure" value={selectedPatient.bp} />
-                                                <DetailBox label="Heart Rate" value={selectedPatient.pulse} unit="BPM" />
-                                                <DetailBox label="Temperature" value={selectedPatient.temp} />
-                                                <DetailBox label="SpO2" value={selectedPatient.spo2} unit="%" />
+                                                <DetailBox label="Blood Pressure" value={selectedPatient.vitals?.blood_pressure} />
+                                                <DetailBox label="Heart Rate" value={selectedPatient.vitals?.pulse} unit="BPM" />
+                                                <DetailBox label="Temperature" value={selectedPatient.vitals?.temperature} />
+                                                <DetailBox label="SpO2" value={selectedPatient.vitals?.spo2} unit="%" />
                                             </div>
                                         </div>
 

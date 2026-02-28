@@ -117,10 +117,10 @@ export default function ClaimsPage() {
             location: record.location,
             scheme_eligibility: record.scheme_eligibility,
             vitals: {
-                blood_pressure: record.bp,
-                pulse: record.pulse,
-                temperature: record.temp,
-                spo2: record.spo2,
+                blood_pressure: record.vitals?.blood_pressure,
+                pulse: record.vitals?.pulse,
+                temperature: record.vitals?.temperature,
+                spo2: record.vitals?.spo2,
             },
         };
 

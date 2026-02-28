@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ruralmed-postgres
+    environment:
+      POSTGRES_DB: ruralmed
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ruralmed"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: ruralmed-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ruralmed
+      AES_256_KEY: ${AES_256_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    ports:
+      - "8003:8003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: ruralmed-frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://backend:8003
+      NEXT_PUBLIC_WS_URL: ws://backend:8003/ws/live-consultation
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
