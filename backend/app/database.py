@@ -1,13 +1,56 @@
 # backend/app/database.py
-import sqlite3
+import os
 import json
+import base64
+import secrets
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+import psycopg2
+import psycopg2.extras
 from app.core.schema import PatientData
 
-DB_NAME = "ruralmed.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/ruralmed")
+
+
+def _get_aes_key() -> bytes:
+    key_b64 = os.getenv("AES_256_KEY")
+    if not key_b64:
+        raise ValueError("AES_256_KEY environment variable is required (base64-encoded 32-byte key)")
+
+    try:
+        key = base64.b64decode(key_b64)
+    except Exception as exc:
+        raise ValueError("AES_256_KEY must be valid base64") from exc
+
+    if len(key) != 32:
+        raise ValueError("AES_256_KEY must decode to exactly 32 bytes for AES-256-GCM")
+    return key
+
+
+def encrypt_text(plain_text: str | None) -> str | None:
+    if plain_text is None:
+        return None
+
+    key = _get_aes_key()
+    aesgcm = AESGCM(key)
+    iv = secrets.token_bytes(12)
+    ciphertext = aesgcm.encrypt(iv, plain_text.encode("utf-8"), None)
+    return base64.b64encode(iv + ciphertext).decode("utf-8")
+
+
+def decrypt_text(cipher_text_b64: str | None) -> str | None:
+    if cipher_text_b64 is None:
+        return None
+
+    key = _get_aes_key()
+    raw = base64.b64decode(cipher_text_b64)
+    iv, ciphertext = raw[:12], raw[12:]
+    aesgcm = AESGCM(key)
+    plain = aesgcm.decrypt(iv, ciphertext, None)
+    return plain.decode("utf-8")
 
 def get_db_connection():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL)
+    conn.autocommit = False
     return conn
 
 def init_db():
@@ -15,7 +58,7 @@ def init_db():
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS patients (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             name TEXT,
             age TEXT,
             gender TEXT,
@@ -42,48 +85,30 @@ def init_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
-    # Migration for existing databases
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN tentative_doctor_diagnosis TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN initial_llm_diagnosis TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN family_history TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN ration_card_type TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN income_bracket TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN occupation TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN caste_category TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN housing_type TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN scheme_eligibility TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN location TEXT")
-    except sqlite3.OperationalError: pass
-    try:
-        cursor.execute("ALTER TABLE patients ADD COLUMN transcript_summary TEXT")
-    except sqlite3.OperationalError: pass
+
+    # Forward-compatible column migrations for existing PostgreSQL tables
+    migration_columns = [
+        "tentative_doctor_diagnosis",
+        "initial_llm_diagnosis",
+        "family_history",
+        "ration_card_type",
+        "income_bracket",
+        "occupation",
+        "caste_category",
+        "housing_type",
+        "scheme_eligibility",
+        "location",
+        "transcript_summary",
+    ]
+    for column in migration_columns:
+        cursor.execute(f"ALTER TABLE patients ADD COLUMN IF NOT EXISTS {column} TEXT")
 
     conn.commit()
     conn.close()
 
 def save_patient(data: PatientData):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     
     # helper for json list dumps
     def to_json(val):
@@ -107,39 +132,40 @@ def save_patient(data: PatientData):
             ration_card_type, income_bracket, occupation, caste_category, housing_type, location, scheme_eligibility
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ''', (
-        data.name,
-        data.age,
-        data.gender,
-        data.chief_complaint,
+        encrypt_text(data.name),
+        encrypt_text(data.age),
+        encrypt_text(data.gender),
+        encrypt_text(data.chief_complaint),
         to_json(data.symptoms),
-        v.temperature if v else None,
-        v.blood_pressure if v else None,
-        v.pulse if v else None,
-        v.spo2 if v else None,
+        encrypt_text(v.temperature if v else None),
+        encrypt_text(v.blood_pressure if v else None),
+        encrypt_text(v.pulse if v else None),
+        encrypt_text(v.spo2 if v else None),
         to_json(data.medical_history),
         to_json(data.family_history),
         to_json(data.allergies),
-        data.tentative_doctor_diagnosis,
-        data.initial_llm_diagnosis,
+        encrypt_text(data.tentative_doctor_diagnosis),
+        encrypt_text(data.initial_llm_diagnosis),
         to_json(data.medications),
-        data.transcript_summary,
-        data.ration_card_type,
-        data.income_bracket,
-        data.occupation,
-        data.caste_category,
-        data.housing_type,
-        data.location,
+        encrypt_text(data.transcript_summary),
+        encrypt_text(data.ration_card_type),
+        encrypt_text(data.income_bracket),
+        encrypt_text(data.occupation),
+        encrypt_text(data.caste_category),
+        encrypt_text(data.housing_type),
+        encrypt_text(data.location),
         to_json_obj(data.scheme_eligibility),
     ))
-    
-    patient_id = cursor.lastrowid
+
+    cursor.execute("SELECT currval(pg_get_serial_sequence('patients','id')) AS id")
+    patient_id = cursor.fetchone()["id"]
     conn.commit()
     conn.close()
     return patient_id
 
 def update_patient(patient_id: int, data: PatientData):
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     def to_json(val):
         return json.dumps(val) if val else "[]"
@@ -175,27 +201,27 @@ def update_patient(patient_id: int, data: PatientData):
             scheme_eligibility = ?
         WHERE id = ?
     ''', (
-        data.name,
-        data.age,
-        data.gender,
-        data.chief_complaint,
+        encrypt_text(data.name),
+        encrypt_text(data.age),
+        encrypt_text(data.gender),
+        encrypt_text(data.chief_complaint),
         to_json(data.symptoms),
-        v.temperature if v else None,
-        v.blood_pressure if v else None,
-        v.pulse if v else None,
-        v.spo2 if v else None,
+        encrypt_text(v.temperature if v else None),
+        encrypt_text(v.blood_pressure if v else None),
+        encrypt_text(v.pulse if v else None),
+        encrypt_text(v.spo2 if v else None),
         to_json(data.medical_history),
         to_json(data.family_history),
         to_json(data.allergies),
-        data.tentative_doctor_diagnosis,
-        data.initial_llm_diagnosis,
+        encrypt_text(data.tentative_doctor_diagnosis),
+        encrypt_text(data.initial_llm_diagnosis),
         to_json(data.medications),
-        data.ration_card_type,
-        data.income_bracket,
-        data.occupation,
-        data.caste_category,
-        data.housing_type,
-        data.location,
+        encrypt_text(data.ration_card_type),
+        encrypt_text(data.income_bracket),
+        encrypt_text(data.occupation),
+        encrypt_text(data.caste_category),
+        encrypt_text(data.housing_type),
+        encrypt_text(data.location),
         to_json_obj(data.scheme_eligibility),
         patient_id,
     ))
@@ -208,13 +234,13 @@ def update_patient(patient_id: int, data: PatientData):
 def delete_patient(patient_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('DELETE FROM patients WHERE id = ?', (patient_id,))
+    cursor.execute('DELETE FROM patients WHERE id = %s', (patient_id,))
     conn.commit()
     conn.close()
 
 def get_all_patients():
     conn = get_db_connection()
-    cursor = conn.cursor()
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     cursor.execute('SELECT * FROM patients ORDER BY created_at DESC')
     rows = cursor.fetchall()
             
@@ -222,12 +248,29 @@ def get_all_patients():
     patients = []
     for row in rows:
         p = dict(row)
+        for enc_field in [
+            'name', 'age', 'gender', 'chief_complaint', 'temp', 'bp', 'pulse', 'spo2',
+            'tentative_doctor_diagnosis', 'initial_llm_diagnosis', 'transcript_summary',
+            'ration_card_type', 'income_bracket', 'occupation', 'caste_category', 'housing_type', 'location'
+        ]:
+            if p.get(enc_field):
+                try:
+                    p[enc_field] = decrypt_text(p[enc_field])
+                except Exception:
+                    p[enc_field] = None
         for json_field in ['symptoms', 'medical_history', 'family_history', 'allergies', 'medications', 'scheme_eligibility']:
             if p.get(json_field):
                 try:
                     p[json_field] = json.loads(p[json_field])
                 except:
                     p[json_field] = [] if json_field != 'scheme_eligibility' else None
+        
+        p['vitals'] = {
+            'temperature': p.pop('temp', None),
+            'blood_pressure': p.pop('bp', None),
+            'pulse': p.pop('pulse', None),
+            'spo2': p.pop('spo2', None)
+        }
         patients.append(p)
     
     conn.close()
@@ -235,19 +278,36 @@ def get_all_patients():
 
 def get_patient_by_id(patient_id: int):
     conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('SELECT * FROM patients WHERE id = ?', (patient_id,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    cursor.execute('SELECT * FROM patients WHERE id = %s', (patient_id,))
     row = cursor.fetchone()
     conn.close()
     
     if row:
         p = dict(row)
+        for enc_field in [
+            'name', 'age', 'gender', 'chief_complaint', 'temp', 'bp', 'pulse', 'spo2',
+            'tentative_doctor_diagnosis', 'initial_llm_diagnosis', 'transcript_summary',
+            'ration_card_type', 'income_bracket', 'occupation', 'caste_category', 'housing_type', 'location'
+        ]:
+            if p.get(enc_field):
+                try:
+                    p[enc_field] = decrypt_text(p[enc_field])
+                except Exception:
+                    p[enc_field] = None
         for json_field in ['symptoms', 'medical_history', 'family_history', 'allergies', 'medications', 'scheme_eligibility']:
             if p.get(json_field):
                 try:
                     p[json_field] = json.loads(p[json_field])
                 except:
                     p[json_field] = [] if json_field != 'scheme_eligibility' else None
+        
+        p['vitals'] = {
+            'temperature': p.pop('temp', None),
+            'blood_pressure': p.pop('bp', None),
+            'pulse': p.pop('pulse', None),
+            'spo2': p.pop('spo2', None)
+        }
         return p
     return None
 
@@ -255,7 +315,7 @@ def update_patient_summary(patient_id: int, summary: str):
     """Update only the transcript_summary for an existing patient."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute('UPDATE patients SET transcript_summary = ? WHERE id = ?', (summary, patient_id))
+    cursor.execute('UPDATE patients SET transcript_summary = %s WHERE id = %s', (encrypt_text(summary), patient_id))
     conn.commit()
     conn.close()
     print(f"Updated summary for patient {patient_id}")

@@ -6,6 +6,28 @@
 
 ## 🚀 How to Run
 
+### Option A: Docker (Recommended)
+
+This starts **PostgreSQL + Backend + Frontend** together.
+
+1. Copy `.env.example` to `.env` and fill values (`AES_256_KEY`, `GEMINI_API_KEY`).
+2. Run Docker Compose from project root:
+
+```bash
+docker compose up --build
+```
+
+Services:
+- Frontend: `http://localhost:3000`
+- Backend: `http://localhost:8003`
+- Postgres: `localhost:5432`
+
+### Security model
+
+- Database moved from SQLite to **PostgreSQL**.
+- Sensitive patient fields are encrypted at application layer using **AES-256-GCM** before persistence.
+- Keep `AES_256_KEY` secret and rotate with care (old encrypted records require previous key for decryption).
+
 You need to run two separate terminals: one for the **Backend** (Brain) and one for the **Frontend** (UI).
 
 ### Terminal 1: Backend

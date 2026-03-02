@@ -47,10 +47,10 @@ export const getAyushmanTemplate = (patient: any) => {
         <div class="section-title">VITALS AT ADMISSION</div>
         <table>
             <tr>
-                <td><strong>BP:</strong> ${patient.bp || "--"}</td>
-                <td><strong>Pulse:</strong> ${patient.pulse || "--"} /min</td>
-                <td><strong>Temp:</strong> ${patient.temp || "--"}</td>
-                <td><strong>SpO2:</strong> ${patient.spo2 || "--"}%</td>
+                <td><strong>BP:</strong> ${patient.vitals?.blood_pressure || "--"}</td>
+                <td><strong>Pulse:</strong> ${patient.vitals?.pulse || "--"} /min</td>
+                <td><strong>Temp:</strong> ${patient.vitals?.temperature || "--"}</td>
+                <td><strong>SpO2:</strong> ${patient.vitals?.spo2 || "--"}%</td>
             </tr>
         </table>
 
@@ -137,7 +137,7 @@ export const getCGHSTemplate = (patient: any) => {
         </div>
         
         <div style="padding: 10px 0;">
-             <strong>Vitals:</strong> BP: ${patient.bp || "--"} | Pulse: ${patient.pulse || "--"} | Temp: ${patient.temp || "--"}
+             <strong>Vitals:</strong> BP: ${patient.vitals?.blood_pressure || "--"} | Pulse: ${patient.vitals?.pulse || "--"} | Temp: ${patient.vitals?.temperature || "--"}
         </div>
 
         <div class="rx-section">

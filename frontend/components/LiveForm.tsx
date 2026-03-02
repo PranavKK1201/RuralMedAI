@@ -101,13 +101,15 @@ export function LiveForm({ data }: LiveFormProps) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1px_1fr] gap-3 items-center">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                            <InputField label="Ration Card" name="ration_card_type" register={register} highlight={lastUpdatedField === 'ration_card_type'} placeholder="Yes/No" />
-                            <InputField label="Income" name="income_bracket" register={register} highlight={lastUpdatedField === 'income_bracket'} placeholder="Per month" />
-                            <InputField label="Occupation" name="occupation" register={register} highlight={lastUpdatedField === 'occupation'} placeholder="Occupation" />
-                            <InputField label="Caste Category" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC" />
-                            <InputField label="Housing Type" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kutcha/Pucca" />
-                            <InputField label="Location" name="location" register={register} highlight={lastUpdatedField === 'location'} placeholder="State/City" />
+                        <div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-slate-800">
+                                <InputField label="Ration Card" name="ration_card_type" register={register} highlight={lastUpdatedField === 'ration_card_type'} placeholder="Yes/No" />
+                                <InputField label="Income" name="income" register={register} highlight={lastUpdatedField === 'income'} placeholder="Per month" />
+                                <InputField label="Occupation" name="occupation" register={register} highlight={lastUpdatedField === 'occupation'} placeholder="Occupation" />
+                                <InputField label="Caste Category" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC" />
+                                <InputField label="Housing Type" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kutcha/Pucca" />
+                                <InputField label="Location" name="location" register={register} highlight={lastUpdatedField === 'location'} placeholder="State/City" />
+                            </div>
                         </div>
 
                         <div className="hidden md:block w-px h-[82%] bg-slate-300 self-center" />
@@ -126,11 +128,11 @@ export function LiveForm({ data }: LiveFormProps) {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
-                        <ListSection title="Symptoms" items={data.symptoms} placeholder="No symptoms captured" />
-                        <ListSection title="Medications" items={data.medications} placeholder="No medications captured" />
-                        <ListSection title="Allergies" items={data.allergies} placeholder="No allergies captured" />
-                        <ListSection title="History" items={data.medical_history} placeholder="No history captured" />
-                        <ListSection title="Family History" items={data.family_history} placeholder="No family history captured" />
+                        <ListSection title="Symptoms" items={data.symptoms} highlight={lastUpdatedField === 'symptoms'} placeholder="No symptoms captured" />
+                        <ListSection title="Medications" items={data.medications} highlight={lastUpdatedField === 'medications'} placeholder="No medications captured" />
+                        <ListSection title="Allergies" items={data.allergies} highlight={lastUpdatedField === 'allergies'} placeholder="No allergies captured" />
+                        <ListSection title="History" items={data.medical_history} highlight={lastUpdatedField === 'medical_history'} placeholder="No history captured" />
+                        <ListSection title="Family History" items={data.family_history} highlight={lastUpdatedField === 'family_history'} placeholder="No family history captured" />
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -154,8 +156,8 @@ export function LiveForm({ data }: LiveFormProps) {
                         />
                     </div>
                 </section>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 
@@ -164,7 +166,7 @@ function EligibilityStatus({ data }: { data: any }) {
     const requiredEligibilityFields = [
         data.age,
         data.ration_card_type,
-        data.income_bracket,
+        data.income,
         data.occupation,
         data.caste_category,
         data.housing_type,
@@ -230,7 +232,7 @@ function InputField({ label, name, register, highlight, isTextArea, placeholder,
     return (
         <div className="relative group w-full flex flex-col">
             <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-[0.2em] mb-1 px-0.5">{label}</label>
-            <div className={`relative transition-all duration-300 rounded-xl border ${highlight ? 'border-cyan-300 bg-cyan-50' : 'border-slate-300 bg-slate-200'}`}>
+            <div className={`relative transition-all duration-300 rounded-xl border ${highlight ? 'border-emerald-500 bg-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.9)] z-10' : 'border-slate-300 bg-slate-200'}`}>
                 {isTextArea ? (
                     <textarea
                         {...register(name)}
@@ -253,7 +255,7 @@ function InputField({ label, name, register, highlight, isTextArea, placeholder,
 
 function VitalField({ label, name, register, highlight, unit }: any) {
     return (
-        <div className={`p-2 rounded-xl border transition-all duration-300 h-[66px] flex flex-col justify-between ${highlight ? 'border-cyan-300 bg-cyan-50' : 'border-slate-300 bg-slate-200'}`}>
+        <div className={`p-2 rounded-xl border transition-all duration-300 h-[66px] flex flex-col justify-between ${highlight ? 'border-emerald-500 bg-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.9)] z-10' : 'border-slate-300 bg-slate-200'}`}>
             <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{label}</label>
             <div className="flex items-end gap-1.5">
                 <input
@@ -268,13 +270,13 @@ function VitalField({ label, name, register, highlight, unit }: any) {
     );
 }
 
-function ListSection({ title, items, placeholder }: any) {
+function ListSection({ title, items, highlight, placeholder }: any) {
     const list = Array.isArray(items) ? items : [];
 
     return (
         <div className="space-y-1.5 flex flex-col h-full">
             <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{title}</label>
-            <div className="p-2 bg-slate-200 min-h-[56px] rounded-xl border border-slate-300 flex-1" style={{ cursor: DARK_TEXT_CURSOR }}>
+            <div className={`p-2 transition-all duration-300 min-h-[56px] rounded-xl border flex-1 ${highlight ? 'border-emerald-500 bg-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.9)] z-10' : 'border-slate-300 bg-slate-200'}`} style={{ cursor: DARK_TEXT_CURSOR }}>
                 <AnimatePresence mode="popLayout">
                     {list.length ? (
                         <div className="flex flex-col gap-1.5">

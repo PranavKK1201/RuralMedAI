@@ -41,10 +41,10 @@ class SchemeEligibilityEngine:
             confidence = 0.8
 
         # 3. Proxy Indicators (Ration Cards)
-        ration_card = str(data.get('ration_card_type', '')).lower()
-        if any(rc in ration_card for rc in ['bpl', 'antyodaya', 'aay', 'yellow']):
+        ration_card = str(data.get('ration_card_type', '')).lower().strip()
+        if ration_card and ration_card not in ['no', 'none', 'not present', 'nil', 'nahi', 'नहीं']:
             is_eligible = True
-            reasons.append(f"Proxy Inclusion: {ration_card.upper()} card holder")
+            reasons.append(f"Proxy Inclusion: Ration card holder")
             confidence = 0.9
 
         # Age based state schemes (e.g. Old age pension/medical aid)
