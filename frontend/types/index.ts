@@ -31,6 +31,7 @@ export interface PatientData {
     tentative_doctor_diagnosis?: string;
     initial_llm_diagnosis?: string;
     medications?: string[];
+    procedures?: string[];
     // Eligibility Fields
     ration_card_type?: string;
     income?: string;
@@ -39,7 +40,30 @@ export interface PatientData {
     housing_type?: string;
     location?: string;
     scheme_eligibility?: SchemeEligibilitySnapshot;
+    // Billing & ICD Coding (auto-populated after EHR commit)
+    icd10_codes?: ICDCodeEntry[];
+    procedure_codes?: ICDCodeEntry[];
+    billing_summary?: BillingSummary;
 }
+
+export interface ICDCodeEntry {
+    code: string;
+    description: string;
+    confidence: number;
+    source: 'semantic' | 'entity' | 'tfidf' | 'exact';
+}
+
+export interface BillingSummary {
+    patient_id: number;
+    encounter_date: string;
+    principal_diagnosis_code: string;
+    principal_diagnosis_description: string;
+    diagnosis_codes: ICDCodeEntry[];
+    procedure_codes: ICDCodeEntry[];
+    billing_notes: string;
+    coding_status: 'auto_coded' | 'confirmed' | 'partial';
+}
+
 
 export interface TranscriptItem {
     id: string;

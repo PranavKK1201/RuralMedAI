@@ -42,7 +42,7 @@ update_patient_data = {
         "properties": {
             "field": {
                 "type": "STRING",
-                "description": "The field to update: name, age, gender, caste_category, ration_card_type, income, occupation, housing_type, location, chief_complaint, symptoms, medical_history, family_history, allergies, medications, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2"
+                "description": "The field to update: name, age, gender, caste_category, ration_card_type, income, occupation, housing_type, location, chief_complaint, symptoms, medical_history, family_history, allergies, medications, procedures, tentative_doctor_diagnosis, initial_llm_diagnosis, vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2"
             },
             "value": {
                 "type": "STRING", 

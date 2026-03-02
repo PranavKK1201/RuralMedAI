@@ -21,12 +21,15 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: ruralmed-backend
+    shm_size: '2g'          # Required for PyTorch multi-process embedding pool
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ruralmed
       AES_256_KEY: ${AES_256_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
     ports:
       - "8003:8003"
+    volumes:
+      - backend_data:/app/backend/data   # Persist ChromaDB — no re-indexing on restart
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,3 +49,4 @@ services:
 
 volumes:
   postgres_data:
+  backend_data:

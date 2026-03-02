@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PatientData } from '@/types';
-import { ClipboardList, Thermometer, User, Activity, CreditCard, CheckCircle2, Info } from 'lucide-react';
+import { ClipboardList, Thermometer, User, Activity, CreditCard, CheckCircle2, Info, Stethoscope, Receipt } from 'lucide-react';
 
 interface LiveFormProps {
     data: PatientData;
@@ -127,9 +127,10 @@ export function LiveForm({ data }: LiveFormProps) {
                         <Activity className="w-3.5 h-3.5" /> Clinical Intelligence
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
                         <ListSection title="Symptoms" items={data.symptoms} highlight={lastUpdatedField === 'symptoms'} placeholder="No symptoms captured" />
                         <ListSection title="Medications" items={data.medications} highlight={lastUpdatedField === 'medications'} placeholder="No medications captured" />
+                        <ListSection title="Procedures" items={data.procedures} highlight={lastUpdatedField === 'procedures'} placeholder="No procedures captured" />
                         <ListSection title="Allergies" items={data.allergies} highlight={lastUpdatedField === 'allergies'} placeholder="No allergies captured" />
                         <ListSection title="History" items={data.medical_history} highlight={lastUpdatedField === 'medical_history'} placeholder="No history captured" />
                         <ListSection title="Family History" items={data.family_history} highlight={lastUpdatedField === 'family_history'} placeholder="No family history captured" />
@@ -156,8 +157,84 @@ export function LiveForm({ data }: LiveFormProps) {
                         />
                     </div>
                 </section>
-            </div >
-        </div >
+
+                {/* ICD-10 & Billing Panel */}
+                <section className="bg-white border border-slate-300 rounded-2xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
+                            <Receipt className="w-3.5 h-3.5" /> ICD-10 Billing Codes
+                        </div>
+                        {data.billing_summary?.coding_status && (
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${data.billing_summary.coding_status === 'confirmed'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : 'bg-blue-50 text-blue-600 border-blue-200'
+                                }`}>
+                                {data.billing_summary.coding_status === 'confirmed' ? '✓ Confirmed' : '⚡ Auto-coded'}
+                            </span>
+                        )}
+                    </div>
+
+                    {(!data.icd10_codes || data.icd10_codes.length === 0) && (!data.procedure_codes || data.procedure_codes.length === 0) ? (
+                        <p className="text-[11px] text-slate-400 font-mono italic py-1">
+                            Billing codes auto-generate after EHR commit via background task.
+                        </p>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {/* Diagnosis Codes */}
+                            {(data.icd10_codes?.length ?? 0) > 0 && (
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                                        <Stethoscope className="w-2.5 h-2.5" /> ICD-10-CM Diagnoses
+                                    </label>
+                                    <div className="space-y-1">
+                                        {data.icd10_codes!.map((entry, i) => (
+                                            <div key={i} className="flex items-center justify-between px-2 py-1 bg-blue-50 border border-blue-100 rounded-lg">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold font-mono text-blue-700">{entry.code}</span>
+                                                    <span className="text-[10px] text-slate-600 truncate max-w-[180px]">{entry.description}</span>
+                                                </div>
+                                                <span className="text-[9px] font-mono text-slate-400 shrink-0 ml-2">{Math.round(entry.confidence * 100)}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Procedure Codes */}
+                            {(data.procedure_codes?.length ?? 0) > 0 && (
+                                <div className="space-y-1.5">
+                                    <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                                        <Receipt className="w-2.5 h-2.5" /> ICD-10-PCS Procedures
+                                    </label>
+                                    <div className="space-y-1">
+                                        {data.procedure_codes!.map((entry, i) => (
+                                            <div key={i} className="flex items-center justify-between px-2 py-1 bg-violet-50 border border-violet-100 rounded-lg">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold font-mono text-violet-700">{entry.code}</span>
+                                                    <span className="text-[10px] text-slate-600 truncate max-w-[180px]">{entry.description}</span>
+                                                </div>
+                                                <span className="text-[9px] font-mono text-slate-400 shrink-0 ml-2">{Math.round(entry.confidence * 100)}%</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {data.id && (
+                        <div className="pt-1 border-t border-slate-100">
+                            <a
+                                href={`/diagnostics?patient_id=${data.id}`}
+                                className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition-colors uppercase tracking-widest"
+                            >
+                                View &amp; Confirm Full Billing Claim →
+                            </a>
+                        </div>
+                    )}
+                </section>
+            </div>
+        </div>
     );
 }
 

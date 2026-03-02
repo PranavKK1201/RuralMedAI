@@ -8,7 +8,8 @@ import {
     ClipboardList,
     Activity,
     ChevronRight,
-    Search
+    Search,
+    Receipt
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -30,8 +31,15 @@ const NAV_ITEMS = [
         href: '/patients',
         icon: ClipboardList,
         description: 'Patient History'
+    },
+    {
+        name: 'Billing',
+        href: '/diagnostics',
+        icon: Receipt,
+        description: 'ICD-10 Coding Center'
     }
 ];
+
 
 export function Sidebar() {
     const pathname = usePathname();
@@ -55,8 +63,8 @@ export function Sidebar() {
                             key={item.href}
                             href={item.href}
                             className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${isActive
-                                    ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
-                                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
+                                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
+                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                 }`}
                         >
                             <item.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-slate-900'}`} />

@@ -34,6 +34,9 @@ class PatientData(BaseModel):
     
     medications: List[str] = Field(default_factory=list, description="Prescribed medications")
 
+    # Procedures performed during visit (captured by scribe)
+    procedures: List[str] = Field(default_factory=list, description="Clinical procedures performed during the encounter")
+
     # Eligibility & Schemes
     ration_card_type: Optional[str] = Field(None, description="e.g., BPL, Antyodaya (AAY), PHH")
     income_bracket: Optional[str] = Field(None, description="Reported annual income")
@@ -43,8 +46,20 @@ class PatientData(BaseModel):
     location: Optional[str] = Field(None, description="Patient residence location/state")
     scheme_eligibility: Optional[Dict[str, Any]] = Field(None, description="Computed eligibility snapshot")
 
+    # Billing & ICD Coding (auto-populated by background task after EHR commit)
+    icd10_codes: Optional[List[Dict[str, Any]]] = Field(
+        None, description="ICD-10-CM diagnosis codes auto-suggested for this encounter"
+    )
+    procedure_codes: Optional[List[Dict[str, Any]]] = Field(
+        None, description="ICD-10-PCS procedure codes auto-suggested for this encounter"
+    )
+    billing_summary: Optional[Dict[str, Any]] = Field(
+        None, description="Assembled billing claim object (insurer-agnostic)"
+    )
+
     # Metadata (Useful for Phase 2 DB storage)
     consultation_id: Optional[str] = None
     timestamp: Optional[str] = None
     transcript_summary: Optional[str] = Field(None, description="Important points from the conversation transcript")
     transcript_history: Optional[List[str]] = Field(None, description="Full conversation history for summarization (not stored)")
+
