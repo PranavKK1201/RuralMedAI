@@ -130,7 +130,7 @@ def save_patient(data: PatientData):
             tentative_doctor_diagnosis, initial_llm_diagnosis,
             medications, transcript_summary,
             ration_card_type, income_bracket, occupation, caste_category, housing_type, location, scheme_eligibility
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (
         encrypt_text(data.name),
         encrypt_text(data.age),
@@ -177,29 +177,29 @@ def update_patient(patient_id: int, data: PatientData):
 
     cursor.execute('''
         UPDATE patients SET
-            name = ?,
-            age = ?,
-            gender = ?,
-            chief_complaint = ?,
-            symptoms = ?,
-            temp = ?,
-            bp = ?,
-            pulse = ?,
-            spo2 = ?,
-            medical_history = ?,
-            family_history = ?,
-            allergies = ?,
-            tentative_doctor_diagnosis = ?,
-            initial_llm_diagnosis = ?,
-            medications = ?,
-            ration_card_type = ?,
-            income_bracket = ?,
-            occupation = ?,
-            caste_category = ?,
-            housing_type = ?,
-            location = ?,
-            scheme_eligibility = ?
-        WHERE id = ?
+            name = %s,
+            age = %s,
+            gender = %s,
+            chief_complaint = %s,
+            symptoms = %s,
+            temp = %s,
+            bp = %s,
+            pulse = %s,
+            spo2 = %s,
+            medical_history = %s,
+            family_history = %s,
+            allergies = %s,
+            tentative_doctor_diagnosis = %s,
+            initial_llm_diagnosis = %s,
+            medications = %s,
+            ration_card_type = %s,
+            income_bracket = %s,
+            occupation = %s,
+            caste_category = %s,
+            housing_type = %s,
+            location = %s,
+            scheme_eligibility = %s
+        WHERE id = %s
     ''', (
         encrypt_text(data.name),
         encrypt_text(data.age),

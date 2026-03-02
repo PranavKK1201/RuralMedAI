@@ -4,7 +4,9 @@ from fastapi.middleware.cors import CORSMiddleware
 import logging
 
 # We will import the service later, for now we just structure the endpoint
+import os
 from app.services.gemini_service import GeminiService 
+from app.services.local_ml_service import LocalMLService
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -38,22 +40,23 @@ async def websocket_endpoint(websocket: WebSocket):
     """
     Handles the real-time consultation stream.
     1. Accepts WebSocket connection.
-    2. Instantiates the AI Service (Gemini).
-    3. Loops to receive audio and send back JSON.
+    2. Instantiates the active AI Service (Gemini or Local ML Node).
+    3. Loops to receive audio and sends back JSON tool calls.
     """
     await websocket.accept()
     logger.info("New WebSocket connection accepted")
 
-    try:
-        service = GeminiService()
-        await service.handle_session(websocket)
+    use_local_ml = os.getenv("USE_LOCAL_ML", "false").lower() == "true"
 
-        
-        # For now, just a simple echo loop to test the connection
-        while True:
-            data = await websocket.receive_text()
-            logger.info(f"Received: {data}")
-            await websocket.send_json({"status": "received", "content": data})
+    try:
+        if use_local_ml:
+            logger.info("Routing traffic to LOCAL ML Stack (Groq + Qwen) via bridge")
+            service = LocalMLService()
+        else:
+            logger.info("Routing traffic to Google GEMINI Live API")
+            service = GeminiService()
+            
+        await service.handle_session(websocket)
             
     except WebSocketDisconnect:
         logger.info("WebSocket disconnected")
