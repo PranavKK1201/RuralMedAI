@@ -64,6 +64,19 @@ The frontend captures your microphone and displays the form.
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+### Terminal 3: Local ML Node (Optional/Recommended)
+If you want to use the insanely fast localized Qwen + Groq STT pipeline instead of Gemini, you must start the ML Node service.
+
+1. Ensure the `Qwen3.5-2B-UD-Q4_K_XL.gguf` model and `llama-server.exe` are available in the desktop folder as outlined in `start_ml.ps1`.
+2. Navigate to the `ml_service` folder.
+    ```bash
+    cd ml_service
+    ```
+3. Run the startup script.
+    ```powershell
+    .\start_ml.ps1
+    ```
+
 ---
 
 ## 📂 Project Structure (Simple Explanation)
@@ -84,3 +97,9 @@ This folder handles what you see and interact with.
 *   **`src/components/LiveForm.tsx`**: The Magic Form. It watches for data updates and highlights fields in blue when they change.
 *   **`src/hooks/useAudioStream.ts`**: The Ears. It turns on your microphone and processes the audio.
 *   **`public/worklet.js`**: The Translator. It converts your browser's audio format (48kHz) to the specific format Gemini needs (16kHz).
+
+### `ml_service/` (The Edge Nodes ⚡)
+This folder contains the extremely low-latency local execution alternative to Google Gemini.
+
+*   **`server.py`**: The bridge that concurrently processes continuous microphone data through Groq's high-speed Whisper VAD wrapper, bypassing conversational latency.
+*   **`start_ml.ps1`**: The hyper-optimized startup script that manages Llama.cpp's hardware thread bindings alongside the FastAPI bridge.

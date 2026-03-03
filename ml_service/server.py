@@ -30,69 +30,71 @@ if not GROQ_API_KEY:
 
 groq_client = Groq(api_key=GROQ_API_KEY)
 SAMPLE_RATE = 16000
-LLAMA_URL = "http://127.0.0.1:8081/v1/chat/completions"
+LLAMA_URL = "http://127.0.0.1:8081/completion"
 
 app = FastAPI(title="RuralMedAI ML Node")
 
 # ── Qwen3.5 Extraction Prompt Setup ───────────────────────────────────────────
-# We adapt the Gemini SYSTEM_INSTRUCTION to force JSON output
-QWEN_SYSTEM = SYSTEM_INSTRUCTION + """\n\n
-CRITICAL: You are running in a specialized JSON-extraction pipeline. 
-Instead of outputting function calls like `update_patient_data(...)`, you MUST output a single valid JSON object containing all extracted fields. 
-Only include fields where explicit patient data was spoken. If no data was spoken, output an empty JSON object: {}
+QWEN_SYSTEM = """
+You are a highly capable medical data extraction assistant.
+Your task is to extract ONLY patient information from the provided "New Transcript to Process" and output it as a valid JSON object.
 
 Allowed keys:
 "name", "age", "gender", "caste_category", "ration_card_type", "income", "occupation", "housing_type", "location", 
 "chief_complaint", "symptoms", "medical_history", "family_history", "allergies", "medications", 
 "tentative_doctor_diagnosis", "initial_llm_diagnosis", "vitals.temperature", "vitals.blood_pressure", "vitals.pulse", "vitals.spo2"
 
+Rules:
+1. ONLY extract information that is explicitly stated in the "New Transcript to Process".
+2. The "Previously Extracted Data" is provided for context only so you don't repeat yourself. Do NOT output data that has already been extracted unless it is updated or restated in the new transcript.
+3. If no new extractable patient data is found in the new transcript, you MUST output an empty JSON object: {}
+4. Standardize standard fields:
+   - gender: 'male', 'female', 'other'
+5. OUTPUT NAKED JSON ONLY. No markdown, no backticks, no explanation.
+
 Example Output:
 {
-  "name": "Raju",
-  "age": "45",
-  "symptoms": ["fever", "cough"]
+  "age": "21",
+  "gender": "male"
 }
-
-OUTPUT NAKED JSON ONLY. No markdown, no backticks, no explanation.
 """
 
 async def run_qwen_extraction(transcript: str, existing_context: dict) -> dict:
     if not transcript.strip():
         return {}
         
-    # We pass the existing context to prevent the model from extracting the same data repeatedly
-    # or conflicting with what it already knows.
     context_str = json.dumps(existing_context) if existing_context else "None"
     
+    # We bypass chat completions and use raw complete to inject the `{` start, bypassing <think> latencies entirely
+    prompt = f"<|im_start|>system\n{QWEN_SYSTEM}<|im_end|>\n<|im_start|>user\nPreviously Extracted Data:\n{context_str}\n\nNew Transcript to Process:\n{transcript.strip()}<|im_end|>\n<|im_start|>assistant\n{{"
+    
     payload = {
-        "messages": [
-            {"role": "system", "content": QWEN_SYSTEM},
-            {"role": "user", "content": f"Previously Extracted Data:\n{context_str}\n\nNew Transcript to Process:\n{transcript.strip()}"},
-        ],
+        "prompt": prompt,
         "temperature": 0.0,
-        "max_tokens": 512,
-        "response_format": {"type": "json_object"}
+        "n_predict": 150,
+        "stop": ["<|im_end|>"]
     }
     try:
-        # Llama.cpp takes a long time to warm up its KV cache on the first prompt
         async with httpx.AsyncClient(timeout=120.0) as http:
             resp = await http.post(LLAMA_URL, json=payload)
-            resp.raise_for_status() # Ensure it returns a 200 OK
+            resp.raise_for_status()
             raw = resp.json()
             
-            if "choices" not in raw or not raw["choices"]:
-                logger.error(f"Unexpected Qwen response: {raw}")
-                return {}
-                
-            content = raw["choices"][0]["message"]["content"].strip()
-            logger.info(f"Qwen output: {content}")
+            content = raw.get("content", "").strip()
+            content = "{" + content  # Since we pre-filled the {, we append it back to the chunk string
             
+            logger.info(f"Qwen raw output: {content}")
+            
+            # Scrub any markdown weirdness
             if content.startswith("```json"): content = content[7:]
             if content.startswith("```"): content = content[3:]
             if content.endswith("```"): content = content[:-3]
+            
+            # Simple bracket balancing if it hit token limit
+            if not content.strip().endswith("}"):
+                content += "}"
                 
             data = json.loads(content)
-            # Standardize list formatting just like gemini_service.py did
             for k, v in data.items():
                 if isinstance(v, list):
                     data[k] = ", ".join(v)
@@ -116,9 +118,11 @@ FILLER_ONLY = {
     "hello", "hello!", "hello.",
     "thank you for watching!", "thanks for watching!", "thank you for watching.",
     "subscribe", "please subscribe",
+    "gracias", "gracias.", "gracias!", "gracias",
+    "hola", "hola.", "hola!", "hola", "hola, hola", "hola, hola.",
 }
 
-def transcribe_groq_sync(audio_float32: np.ndarray, prior_text: str = "") -> str:
+def transcribe_groq_sync(audio_float32: np.ndarray) -> str:
     audio_int16 = (audio_float32 * 32767).astype(np.int16)
     wav_io = io.BytesIO()
     with wave.open(wav_io, "wb") as wf:
@@ -128,15 +132,12 @@ def transcribe_groq_sync(audio_float32: np.ndarray, prior_text: str = "") -> str
         wf.writeframes(audio_int16.tobytes())
     wav_io.seek(0)
     try:
-        valid_history = prior_text.replace("Thank you for watching!", "").replace("Bye!", "").strip()
-        context = valid_history[-60:] if valid_history else ""
-        
         result = groq_client.audio.transcriptions.create(
             file=("chunk.wav", wav_io.read()),
             model="whisper-large-v3",
-            prompt=context,
             response_format="json",
             temperature=0.0,
+            language="en"  # Force English to avoid random Spanish/other language hallucinations
         )
         return result.text.strip()
     except Exception as e:
@@ -158,44 +159,65 @@ async def process_audio_ws(websocket: WebSocket):
     extracted_state = {}
     full_transcript = ""
 
-    SPEECH_THRESHOLD = 0.008
-    SILENCE_FRAMES_TO_FLUSH = 1 # Very rapid response
-    MIN_SPEECH_SAMPLES = 6400  # ~400ms at 16khz
-    MAX_SPEECH_SAMPLES = 80000 # ~5s max chunk
+    SPEECH_THRESHOLD = 0.012  # Increased to reduce false background noise triggers
+    SILENCE_FRAMES_TO_FLUSH = 14  # Increased generously to avoid cutting off sentences mid-thought
+    MIN_SPEECH_SAMPLES = 16000  # ~1s min chunk
+    MAX_SPEECH_SAMPLES = 480000 # ~30s max chunk
 
-    try:
+    audio_queue = asyncio.Queue()
+
+    async def receiver():
+        nonlocal speech_buffer, silence_frames
         while True:
-            data = await websocket.receive_json()
-            if "audio" in data:
-                # Expecting base64 encoded PCM from the bridge
-                pcm_bytes = base64.b64decode(data["audio"])
-                chunk_i16 = np.frombuffer(pcm_bytes, dtype=np.int16)
-                chunk_f32 = chunk_i16.astype(np.float32) / 32768.0
+            try:
+                data = await websocket.receive_json()
+                if "audio" in data:
+                    pcm_bytes = base64.b64decode(data["audio"])
+                    chunk_i16 = np.frombuffer(pcm_bytes, dtype=np.int16)
+                    chunk_f32 = chunk_i16.astype(np.float32) / 32768.0
 
-                frame_rms = float(np.sqrt(np.mean(chunk_f32 ** 2)))
+                    frame_rms = float(np.sqrt(np.mean(chunk_f32 ** 2)))
 
-                if frame_rms > SPEECH_THRESHOLD:
-                    speech_buffer = np.concatenate((speech_buffer, chunk_f32))
-                    silence_frames = 0
-                else:
-                    if len(speech_buffer) > 0:
+                    if frame_rms > SPEECH_THRESHOLD:
                         speech_buffer = np.concatenate((speech_buffer, chunk_f32))
-                        silence_frames += 1
+                        silence_frames = 0
+                    else:
+                        if len(speech_buffer) > 0:
+                            speech_buffer = np.concatenate((speech_buffer, chunk_f32))
+                            silence_frames += 1
 
-                should_flush = (
-                    silence_frames >= SILENCE_FRAMES_TO_FLUSH
-                    and len(speech_buffer) >= MIN_SPEECH_SAMPLES
-                ) or len(speech_buffer) >= MAX_SPEECH_SAMPLES
+                    should_flush = (
+                        silence_frames >= SILENCE_FRAMES_TO_FLUSH
+                        and len(speech_buffer) >= MIN_SPEECH_SAMPLES
+                    ) or len(speech_buffer) >= MAX_SPEECH_SAMPLES
 
-                if not should_flush:
-                    continue
+                    if not should_flush:
+                        continue
 
-                to_process = speech_buffer.copy()
-                speech_buffer = np.array([], dtype=np.float32)
-                silence_frames = 0
+                    to_process = speech_buffer.copy()
+                    speech_buffer = np.array([], dtype=np.float32)
+                    silence_frames = 0
+                    
+                    await audio_queue.put(to_process)
+            except WebSocketDisconnect:
+                await audio_queue.put(None)
+                break
+            except Exception as e:
+                logger.error(f"[Receiver] Error: {e}")
+
+    llm_queue: asyncio.Queue = asyncio.Queue()
+
+    async def stt_processor():
+        nonlocal full_transcript
+        while True:
+            try:
+                to_process = await audio_queue.get()
+                if to_process is None:
+                    await llm_queue.put(None)
+                    break
 
                 # 1. Groq STT
-                transcript = await loop.run_in_executor(None, transcribe_groq_sync, to_process, full_transcript)
+                transcript = await loop.run_in_executor(None, transcribe_groq_sync, to_process)
                 
                 if not transcript:
                     continue
@@ -207,6 +229,29 @@ async def process_audio_ws(websocket: WebSocket):
                 full_transcript += transcript + " "
                 logger.info(f"[STT] {transcript}")
 
+                # Send transcript to LLM processor
+                await llm_queue.put(transcript)
+
+            except Exception as e:
+                logger.error(f"[stt_processor] Error: {e}")
+
+    async def llm_processor():
+        nonlocal extracted_state
+        while True:
+            try:
+                transcript = await llm_queue.get()
+                if transcript is None:
+                    break
+                
+                # Batch processing: drain the queue to handle Qwen inference backpressure
+                while not llm_queue.empty():
+                    next_transcript = llm_queue.get_nowait()
+                    if next_transcript is None:
+                        # Put it back since it's the termination signal
+                        llm_queue.put_nowait(next_transcript)
+                        break
+                    transcript += " " + next_transcript
+
                 # 2. Qwen3.5 2B Extraction
                 new_data = await run_qwen_extraction(transcript, extracted_state)
                 
@@ -214,24 +259,46 @@ async def process_audio_ws(websocket: WebSocket):
                     for field, value in new_data.items():
                         if not value: continue
                         
+                        changed = False
                         # Merge lists
                         if field in ["symptoms", "medications", "allergies", "medical_history", "family_history"]:
                             existing = extracted_state.get(field, "")
                             existing_list = [x.strip() for x in existing.split(',')] if existing else []
                             new_list = [x.strip() for x in str(value).split(',')]
                             combined = list(set(existing_list + new_list)) # deduplicate
-                            extracted_state[field] = ", ".join(combined)
+                            new_val = ", ".join(combined)
+                            if extracted_state.get(field) != new_val:
+                                extracted_state[field] = new_val
+                                changed = True
                             
                         else:
-                            extracted_state[field] = value
+                            if extracted_state.get(field) != value:
+                                extracted_state[field] = value
+                                changed = True
                             
-                        # Send updates back to the bridge in the EXACT format Gemini provided
-                        await websocket.send_json({
-                            "type": "update",
-                            "field": field,
-                            "value": extracted_state[field]
-                        })
+                        if changed:
+                            # Send updates back to the bridge in the EXACT format Gemini provided
+                            await websocket.send_json({
+                                "type": "update",
+                                "field": field,
+                                "value": extracted_state[field]
+                            })
+            except Exception as e:
+                logger.error(f"[llm_processor] Error: {e}")
 
+    try:
+        # Run all concurrently
+        receive_task = asyncio.create_task(receiver())
+        stt_task = asyncio.create_task(stt_processor())
+        llm_task = asyncio.create_task(llm_processor())
+        
+        done, pending = await asyncio.wait(
+            [receive_task, stt_task, llm_task], 
+            return_when=asyncio.FIRST_COMPLETED
+        )
+        
+        for task in pending:
+            task.cancel()
     except WebSocketDisconnect:
         logger.info("[ML Node] Disconnected")
     except Exception as e:
