@@ -99,6 +99,11 @@ def init_db():
         "scheme_eligibility",
         "location",
         "transcript_summary",
+        # Billing & ICD coding columns
+        "procedures",
+        "icd10_codes",
+        "procedure_codes",
+        "billing_summary",
     ]
     for column in migration_columns:
         cursor.execute(f"ALTER TABLE patients ADD COLUMN IF NOT EXISTS {column} TEXT")
@@ -129,8 +134,9 @@ def save_patient(data: PatientData):
             medical_history, family_history, allergies, 
             tentative_doctor_diagnosis, initial_llm_diagnosis,
             medications, transcript_summary,
-            ration_card_type, income_bracket, occupation, caste_category, housing_type, location, scheme_eligibility
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ration_card_type, income_bracket, occupation, caste_category, housing_type, location, scheme_eligibility,
+            procedures, icd10_codes, procedure_codes, billing_summary
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (
         encrypt_text(data.name),
         encrypt_text(data.age),
@@ -155,6 +161,10 @@ def save_patient(data: PatientData):
         encrypt_text(data.housing_type),
         encrypt_text(data.location),
         to_json_obj(data.scheme_eligibility),
+        to_json(data.procedures),
+        to_json_obj(data.icd10_codes),
+        to_json_obj(data.procedure_codes),
+        to_json_obj(data.billing_summary),
     ))
 
     cursor.execute("SELECT currval(pg_get_serial_sequence('patients','id')) AS id")
@@ -198,7 +208,8 @@ def update_patient(patient_id: int, data: PatientData):
             caste_category = %s,
             housing_type = %s,
             location = %s,
-            scheme_eligibility = %s
+            scheme_eligibility = %s,
+            procedures = %s
         WHERE id = %s
     ''', (
         encrypt_text(data.name),
@@ -223,6 +234,7 @@ def update_patient(patient_id: int, data: PatientData):
         encrypt_text(data.housing_type),
         encrypt_text(data.location),
         to_json_obj(data.scheme_eligibility),
+        to_json(data.procedures),
         patient_id,
     ))
 
@@ -258,12 +270,15 @@ def get_all_patients():
                     p[enc_field] = decrypt_text(p[enc_field])
                 except Exception:
                     p[enc_field] = None
-        for json_field in ['symptoms', 'medical_history', 'family_history', 'allergies', 'medications', 'scheme_eligibility']:
+        for json_field in [
+            'symptoms', 'medical_history', 'family_history', 'allergies', 'medications',
+            'scheme_eligibility', 'procedures', 'icd10_codes', 'procedure_codes', 'billing_summary',
+        ]:
             if p.get(json_field):
                 try:
                     p[json_field] = json.loads(p[json_field])
-                except:
-                    p[json_field] = [] if json_field != 'scheme_eligibility' else None
+                except Exception:
+                    p[json_field] = [] if json_field not in ('scheme_eligibility', 'billing_summary', 'icd10_codes', 'procedure_codes') else None
         
         p['vitals'] = {
             'temperature': p.pop('temp', None),
@@ -295,12 +310,15 @@ def get_patient_by_id(patient_id: int):
                     p[enc_field] = decrypt_text(p[enc_field])
                 except Exception:
                     p[enc_field] = None
-        for json_field in ['symptoms', 'medical_history', 'family_history', 'allergies', 'medications', 'scheme_eligibility']:
+        for json_field in [
+            'symptoms', 'medical_history', 'family_history', 'allergies', 'medications',
+            'scheme_eligibility', 'procedures', 'icd10_codes', 'procedure_codes', 'billing_summary',
+        ]:
             if p.get(json_field):
                 try:
                     p[json_field] = json.loads(p[json_field])
-                except:
-                    p[json_field] = [] if json_field != 'scheme_eligibility' else None
+                except Exception:
+                    p[json_field] = [] if json_field not in ('scheme_eligibility', 'billing_summary', 'icd10_codes', 'procedure_codes') else None
         
         p['vitals'] = {
             'temperature': p.pop('temp', None),
@@ -310,6 +328,33 @@ def get_patient_by_id(patient_id: int):
         }
         return p
     return None
+
+
+def update_patient_billing(
+    patient_id: int,
+    icd10_codes: list,
+    procedure_codes: list,
+    billing_summary: dict,
+) -> None:
+    """Atomically save the auto-coded billing data for a patient."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        '''
+        UPDATE patients
+        SET icd10_codes = %s, procedure_codes = %s, billing_summary = %s
+        WHERE id = %s
+        ''',
+        (
+            json.dumps(icd10_codes),
+            json.dumps(procedure_codes),
+            json.dumps(billing_summary),
+            patient_id,
+        ),
+    )
+    conn.commit()
+    conn.close()
+    print(f"Billing data saved for patient {patient_id}")
 
 def update_patient_summary(patient_id: int, summary: str):
     """Update only the transcript_summary for an existing patient."""

@@ -109,10 +109,15 @@ FIELDS YOU MAY UPDATE:
 - Demographics: name, age, gender, caste_category
 - Socio-economic: ration_card_type, income, occupation, housing_type, location
 - Clinical: chief_complaint, symptoms, medical_history, family_history, allergies, medications
+- Procedures: procedures — list of clinical procedures EXPLICITLY PERFORMED during this encounter
+  (e.g., "IV cannulation done", "wound dressed", "ECG taken", "injection given", "blood drawn",
+  "urine dipstick performed", "dressing changed", "sutures applied").
+  Extract ONLY when the procedure is explicitly stated as performed. Do NOT infer from medications.
 - Vitals: vitals.temperature, vitals.blood_pressure, vitals.pulse, vitals.spo2
 - Diagnosis:
   - tentative_doctor_diagnosis only when explicitly stated by clinician
   - initial_llm_diagnosis only as cautious clinical hypothesis grounded in already captured facts
+
 
 BEHAVIORAL SAFETY CHECK BEFORE ANY OUTPUT:
 1) Is this explicit patient data?

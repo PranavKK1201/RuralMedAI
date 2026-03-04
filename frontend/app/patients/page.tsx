@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Activity, Calendar, FileText, Search, ClipboardList, Trash2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, User, Activity, Calendar, FileText, Search, ClipboardList, Trash2, ChevronRight, Receipt, Stethoscope } from 'lucide-react';
 import Link from 'next/link';
 import { getAyushmanTemplate, getCGHSTemplate, getECHSTemplate } from '../utils/documentTemplates';
 
@@ -151,6 +151,27 @@ export default function PatientsPage() {
                                         <p className="text-[11px] font-medium text-slate-600 line-clamp-2 leading-relaxed italic">
                                             "{patient.tentative_doctor_diagnosis || patient.initial_llm_diagnosis || "No diagnosis"}"
                                         </p>
+
+                                        {/* ICD-10-CM Code Badges */}
+                                        {Array.isArray(patient.icd10_codes) && patient.icd10_codes.length > 0 && (
+                                            <div className="flex flex-wrap gap-1 pt-1">
+                                                {patient.icd10_codes.slice(0, 2).map((c: any, i: number) => (
+                                                    <span key={i} className="px-1.5 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 text-[8px] font-mono rounded font-bold">
+                                                        {c.code}
+                                                    </span>
+                                                ))}
+                                                {patient.icd10_codes.length > 2 && (
+                                                    <span className="px-1.5 py-0.5 text-slate-400 text-[8px] font-mono">+{patient.icd10_codes.length - 2}</span>
+                                                )}
+                                            </div>
+                                        )}
+                                        {/* ICD-10-PCS Procedure Badge Count */}
+                                        {Array.isArray(patient.procedure_codes) && patient.procedure_codes.length > 0 && (
+                                            <div className="flex items-center gap-1 pt-0.5">
+                                                <Receipt className="w-2 h-2 text-violet-500" />
+                                                <span className="text-[8px] font-mono text-violet-600">{patient.procedure_codes.length} procedure code{patient.procedure_codes.length > 1 ? 's' : ''}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
@@ -276,10 +297,68 @@ export default function PatientsPage() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-4 border-t border-slate-200">
                                                 <ListSection title="Symptoms" items={selectedPatient.symptoms} />
                                                 <ListSection title="Medications" items={selectedPatient.medications} />
+                                                <ListSection title="Procedures" items={selectedPatient.procedures} />
                                                 <ListSection title="History" items={selectedPatient.medical_history} />
                                                 <ListSection title="Family" items={selectedPatient.family_history} />
                                                 <ListSection title="Allergies" items={selectedPatient.allergies} />
                                             </div>
+
+                                            {/* Billing Codes Section */}
+                                            {((selectedPatient.icd10_codes?.length ?? 0) > 0 || (selectedPatient.procedure_codes?.length ?? 0) > 0) && (
+                                                <div className="pt-4 border-t border-slate-200 space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] flex items-center gap-2">
+                                                            <Receipt className="w-3 h-3" /> Billing Codes
+                                                        </h3>
+                                                        {selectedPatient.billing_summary?.coding_status && (
+                                                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${selectedPatient.billing_summary.coding_status === 'confirmed'
+                                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                                                    : 'bg-blue-50 text-blue-600 border-blue-200'
+                                                                }`}>
+                                                                {selectedPatient.billing_summary.coding_status === 'confirmed' ? '✓ Confirmed' : '⚡ Auto-coded'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {(selectedPatient.icd10_codes?.length ?? 0) > 0 && (
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                                    <Stethoscope className="w-2.5 h-2.5" /> ICD-10-CM Diagnoses
+                                                                </label>
+                                                                {selectedPatient.icd10_codes.map((c: any, i: number) => (
+                                                                    <div key={i} className="flex justify-between items-center px-2 py-1 bg-blue-50 border border-blue-100 rounded text-[10px]">
+                                                                        <span className="font-bold font-mono text-blue-700">{c.code}</span>
+                                                                        <span className="text-slate-600 truncate mx-2 flex-1">{c.description}</span>
+                                                                        <span className="font-mono text-slate-400 shrink-0">{Math.round(c.confidence * 100)}%</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                        {(selectedPatient.procedure_codes?.length ?? 0) > 0 && (
+                                                            <div className="space-y-1.5">
+                                                                <label className="text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                                                                    <Receipt className="w-2.5 h-2.5" /> ICD-10-PCS Procedures
+                                                                </label>
+                                                                {selectedPatient.procedure_codes.map((c: any, i: number) => (
+                                                                    <div key={i} className="flex justify-between items-center px-2 py-1 bg-violet-50 border border-violet-100 rounded text-[10px]">
+                                                                        <span className="font-bold font-mono text-violet-700">{c.code}</span>
+                                                                        <span className="text-slate-600 truncate mx-2 flex-1">{c.description}</span>
+                                                                        <span className="font-mono text-slate-400 shrink-0">{Math.round(c.confidence * 100)}%</span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="pt-1">
+                                                        <Link
+                                                            href={`/diagnostics?patient_id=${selectedPatient.id}`}
+                                                            className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition-colors uppercase tracking-widest"
+                                                        >
+                                                            Open in Billing &amp; Coding Center →
+                                                        </Link>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
