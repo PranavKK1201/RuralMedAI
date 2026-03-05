@@ -46,12 +46,15 @@ services:
       context: .
       dockerfile: ml_service/Dockerfile
     container_name: ruralmed-ml-service
+    gpus: all
     environment:
       GROQ_API_KEY: ${GROQ_API_KEY}
       LLAMA_MODEL_PATH: ${LLAMA_MODEL_PATH:-/models/Qwen3.5-2B-UD-Q4_K_XL.gguf}
       LLAMA_MODEL_URL: ${LLAMA_MODEL_URL:-}
       LLAMA_PORT: ${LLAMA_PORT:-8081}
       ML_PORT: ${ML_PORT:-8002}
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
     env_file:
       - .env
     ports:

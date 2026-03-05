@@ -9,13 +9,21 @@ if (-not $asset) {
 }
 
 $downloadUrl = $asset.browser_download_url
-$zipPath = "..\..\..\Desktop\STT checks\llama_latest.zip"
-$destPath = "..\..\..\Desktop\STT checks\llama_bin"
+$defaultBaseDir = Join-Path $env:USERPROFILE "Desktop\STT checks"
+$baseDir = if ($env:LLAMA_BASE_DIR) { $env:LLAMA_BASE_DIR } else { $defaultBaseDir }
+$zipPath = Join-Path $baseDir "llama_latest.zip"
+$destPath = Join-Path $baseDir "llama_bin"
+
+New-Item -ItemType Directory -Path $baseDir -Force | Out-Null
 
 Write-Host "Downloading $($asset.name) from $downloadUrl..."
 Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
 
 Write-Host "Extracting to $destPath..."
 Expand-Archive -Path $zipPath -DestinationPath $destPath -Force
+
+if (Test-Path $zipPath) {
+    Remove-Item $zipPath -Force
+}
 
 Write-Host "Update complete!"

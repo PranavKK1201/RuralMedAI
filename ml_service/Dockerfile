@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
 ARG TARGETARCH
-ARG LLAMA_CPP_URL=https://github.com/ggml-org/llama.cpp/releases/download/b8200/llama-b8200-bin-ubuntu-x64.tar.gz
+ARG LLAMA_CPP_URL=https://github.com/ggml-org/llama.cpp/releases/download/b8204/llama-b8204-bin-ubuntu-vulkan-x64.tar.gz
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -16,7 +16,7 @@ COPY ml_service/requirements.txt /app/requirements.txt
 RUN set -eux; \
     python -m pip install --upgrade pip setuptools wheel; \
     for i in 1 2 3; do \
-      pip install --no-cache-dir --retries 10 --timeout 180 --prefer-binary -r /app/requirements.txt && break; \
+      pip install --retries 10 --timeout 180 --prefer-binary -r /app/requirements.txt && break; \
       if [ "$i" -eq 3 ]; then \
         echo "pip install failed after 3 attempts"; \
         exit 1; \
@@ -55,7 +55,8 @@ COPY ml_service /app/ml_service
 COPY .env.example /app/.env.example
 
 WORKDIR /app/ml_service
-RUN chmod +x /app/ml_service/start_ml.sh
+RUN sed -i 's/\r$//' /app/ml_service/start_ml.sh \
+  && chmod +x /app/ml_service/start_ml.sh
 
 EXPOSE 8002 8081
 

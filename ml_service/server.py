@@ -27,11 +27,12 @@ if not GROQ_API_KEY:
 groq_client = Groq(api_key=GROQ_API_KEY)
 SAMPLE_RATE = 16000
 LLAMA_URL = os.getenv("LLAMA_URL", "http://127.0.0.1:8081/completion")
-QWEN_TEMPERATURE = float(os.getenv("QWEN_TEMPERATURE", "0.1"))
-QWEN_TOP_P = float(os.getenv("QWEN_TOP_P", "0.9"))
-QWEN_TOP_K = int(os.getenv("QWEN_TOP_K", "20"))
-QWEN_PRESENCE_PENALTY = float(os.getenv("QWEN_PRESENCE_PENALTY", "1.5"))
-QWEN_N_KEEP = int(os.getenv("QWEN_N_KEEP", "192"))
+QWEN_TEMPERATURE = float(os.getenv("QWEN_TEMPERATURE", "0.0"))
+QWEN_TOP_P = float(os.getenv("QWEN_TOP_P", "0.8"))
+QWEN_TOP_K = int(os.getenv("QWEN_TOP_K", "40"))
+QWEN_PRESENCE_PENALTY = float(os.getenv("QWEN_PRESENCE_PENALTY", "0.0"))
+QWEN_N_KEEP = int(os.getenv("QWEN_N_KEEP", "256"))
+QWEN_MAX_TOKENS = int(os.getenv("QWEN_MAX_TOKENS", "356"))
 VAD_MIN_RMS = float(os.getenv("VAD_MIN_RMS", "0.0055"))
 VAD_START_RATIO = float(os.getenv("VAD_START_RATIO", "2.2"))
 VAD_CONTINUE_RATIO = float(os.getenv("VAD_CONTINUE_RATIO", "1.45"))
@@ -129,7 +130,7 @@ def _extract_first_json_object(text: str) -> dict:
 
 
 def _sanitize_sparse_updates(data: dict) -> dict:
-    """Keep only allowed keys with non-empty values; flatten vitals when nested."""
+    """Keep only allowed keys with concrete values; flatten nested vitals."""
     if not isinstance(data, dict):
         return {}
 
@@ -145,35 +146,49 @@ def _sanitize_sparse_updates(data: dict) -> dict:
             normalized[k] = v
 
     sparse = {}
+    reject_literals = {
+        "null", "none", "n/a", "na", "unknown", "not mentioned", "not provided",
+        "not specified", "unspecified", "nil", "undefined", "{}", "[]", "-"
+    }
+
     for k, v in normalized.items():
         if v is None:
             continue
+
         if isinstance(v, str):
             v = v.strip()
-            if not v:
+            if not v or v.lower() in reject_literals:
                 continue
+
         elif isinstance(v, list):
-            cleaned = [str(x).strip() for x in v if str(x).strip()]
+            cleaned = []
+            for item in v:
+                item_s = str(item).strip()
+                if item_s and item_s.lower() not in reject_literals:
+                    cleaned.append(item_s)
             if not cleaned:
                 continue
-            v = ", ".join(cleaned)
+            v = ", ".join(dict.fromkeys(cleaned))
+
         elif isinstance(v, dict):
             # Non-vitals dicts are not part of the schema.
             continue
+
         sparse[k] = v
+
     return sparse
 
 # ── Qwen3.5 Extraction Prompt Setup ───────────────────────────────────────────
 QWEN_SYSTEM = (
-    "Extract only NEW patient data from New Transcript. "
-    "Output one JSON object with only changed/non-empty keys from: "
-    "name,age,gender,caste_category,ration_card_type,income,occupation,housing_type,location,"
+    "You are a strict sparse JSON extractor for medical intake. "
+    "Return a single minified JSON object using ONLY keys explicitly present in New Transcript. "
+    "Allowed keys: name,age,gender,caste_category,ration_card_type,income,occupation,housing_type,location,"
     "chief_complaint,symptoms,medical_history,family_history,allergies,medications,"
     "tentative_doctor_diagnosis,initial_llm_diagnosis,vitals.temperature,vitals.blood_pressure,"
     "vitals.pulse,vitals.spo2. "
-    "Use Previous Extracted Data only to avoid repeats. "
-    "If no new data, output {}. "
-    "No nulls/empty strings/template/markdown/text. "
+    "Omit any key not present or uncertain. Never output null, empty strings, placeholders, explanations, markdown, or extra text. "
+    "If no new fields are found, output {}. "
+    "Use Previous Extracted Data only to avoid repeating existing values. "
     "Gender must be one of: male,female,other."
 )
 
@@ -194,8 +209,8 @@ async def run_qwen_extraction(transcript: str, existing_context: dict) -> dict:
         "presence_penalty": QWEN_PRESENCE_PENALTY,
         "cache_prompt": True,
         "n_keep": QWEN_N_KEEP,
-        "n_predict": 256,
-        "stop": ["<|im_end|>"]
+        "n_predict": QWEN_MAX_TOKENS,
+        "stop": ["<|im_end|>", "\n<|im_start|>"]
     }
     try:
         async with httpx.AsyncClient(timeout=60.0) as http:
@@ -549,9 +564,9 @@ async def process_audio_ws(websocket: WebSocket):
                         # Merge lists
                         if field in ["symptoms", "medications", "allergies", "medical_history", "family_history"]:
                             existing = extracted_state.get(field, "")
-                            existing_list = [x.strip() for x in existing.split(',')] if existing else []
-                            new_list = [x.strip() for x in str(value).split(',')]
-                            combined = list(set(existing_list + new_list)) # deduplicate
+                            existing_list = [x.strip() for x in existing.split(',') if x.strip()] if existing else []
+                            new_list = [x.strip() for x in str(value).split(',') if x.strip()]
+                            combined = list(dict.fromkeys(existing_list + new_list))
                             new_val = ", ".join(combined)
                             if extracted_state.get(field) != new_val:
                                 extracted_state[field] = new_val
@@ -601,3 +616,8 @@ async def process_audio_ws(websocket: WebSocket):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8002)
+
+
+
+
+
