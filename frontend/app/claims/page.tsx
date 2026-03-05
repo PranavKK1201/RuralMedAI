@@ -173,19 +173,19 @@ export default function ClaimsPage() {
     }, []);
 
     return (
-        <main className="h-screen bg-[#f8fafc] text-foreground overflow-hidden flex flex-col">
-            <div className="flex-none bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                    <h1 className="text-sm font-bold tracking-tight text-slate-900">Insurance Eligibility</h1>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-lg border border-slate-200">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest text-nowrap">Patient Selector</span>
+        <main className="h-screen bg-background text-foreground overflow-hidden flex flex-col">
+            <div className="flex-none bg-white/50 backdrop-blur-xl border-b border-border px-6 py-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-6">
+                    <h1 className="text-sm font-bold tracking-[0.1em] text-foreground uppercase">Insurance <span className="text-primary/20">/</span> Eligibility</h1>
+                    <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 rounded-2xl border border-primary/10">
+                        <span className="text-[9px] font-bold text-primary/60 uppercase tracking-widest text-nowrap">Patient Selector</span>
                         <select
                             value={selectedPatientKey}
                             onChange={(e) => {
                                 setSelectedPatientKey(e.target.value);
                                 setDocumentChecks({});
                             }}
-                            className="bg-transparent text-[11px] font-semibold text-slate-900 focus:outline-none cursor-pointer"
+                            className="bg-transparent text-[11px] font-bold text-foreground focus:outline-none cursor-pointer"
                         >
                             <option value="live">Live Session</option>
                             {archivedPatients.map((patient) => (
@@ -197,26 +197,28 @@ export default function ClaimsPage() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="text-[9px] font-mono font-bold text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded border border-slate-200">
+                <div className="flex items-center gap-4">
+                    <div className="text-[9px] font-mono font-bold text-primary/40 uppercase tracking-widest bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/10">
                         Sync: {lastSyncedAt}
                     </div>
                     <button
                         onClick={handleRefresh}
-                        className="p-1 px-3 flex items-center gap-1.5 rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-all text-[10px] font-bold uppercase tracking-widest"
+                        className="p-1 px-4 py-2 flex items-center gap-2 rounded-xl bg-primary text-white hover:bg-primary/90 transition-all text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-primary/10"
                     >
-                        <RefreshCw className="w-3 h-3" /> Refresh
+                        <RefreshCw className="w-3.5 h-3.5" /> Refresh
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 p-3 md:p-4 h-full flex flex-col max-w-[1700px] mx-auto overflow-hidden">
+            <div className="flex-1 p-3 h-full flex flex-col max-w-[1800px] mx-auto overflow-hidden w-full">
                 <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-12 gap-3 overflow-hidden">
-                    <section className="xl:col-span-4 min-h-0 border border-slate-200 rounded-lg bg-slate-50 p-3 overflow-y-auto">
-                        <h2 className="text-sm font-semibold text-slate-900 mb-2">Patient biodata</h2>
-                        <p className="text-[11px] text-slate-500 mb-3">Fields turn green/red based on selected scheme criteria.</p>
+                    <section className="xl:col-span-3 min-h-0 border border-border rounded-[2rem] bg-white shadow-sm p-4 flex flex-col overflow-hidden">
+                        <div className="mb-3">
+                            <h2 className="text-sm font-bold text-foreground uppercase tracking-[0.1em]">Patient biodata</h2>
+                            <p className="text-[10px] text-primary/60 font-medium uppercase tracking-wider mt-1">Fields sync with selected scheme</p>
+                        </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar flex-1">
                             {workspace.patientFields.map((field) => {
                                 const status = getFieldMatchStatus(field.key, selectedScheme);
                                 return <BiodataRow key={field.key} label={field.label} value={field.value} status={status} />;
@@ -224,11 +226,13 @@ export default function ClaimsPage() {
                         </div>
                     </section>
 
-                    <section className="xl:col-span-3 min-h-0 border border-slate-200 rounded-lg bg-slate-50 p-3 overflow-y-auto">
-                        <h2 className="text-sm font-semibold text-slate-900 mb-2">Schemes list</h2>
-                        <p className="text-[11px] text-slate-500 mb-3">Select a scheme to inspect matched and missing criteria.</p>
+                    <section className="xl:col-span-3 min-h-0 border border-border rounded-[2rem] bg-white shadow-sm p-4 flex flex-col overflow-hidden">
+                        <div className="mb-3">
+                            <h2 className="text-sm font-bold text-foreground uppercase tracking-[0.1em]">Schemes list</h2>
+                            <p className="text-[10px] text-primary/60 font-medium uppercase tracking-wider mt-1">Select a scheme to inspect</p>
+                        </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 overflow-y-auto pr-2 custom-scrollbar flex-1">
                             {workspace.schemes.map((scheme) => (
                                 <SchemeCard
                                     key={scheme.id}
@@ -241,15 +245,17 @@ export default function ClaimsPage() {
                         </div>
                     </section>
 
-                    <section className="xl:col-span-5 min-h-0 border border-slate-200 rounded-lg bg-slate-50 p-3 overflow-y-auto">
+                    <section className="xl:col-span-6 min-h-0 border border-border rounded-[2rem] bg-white shadow-sm p-4 flex flex-col overflow-hidden">
                         {!selectedScheme ? (
-                            <div className="h-full flex items-center justify-center text-slate-500 text-sm">No scheme selected</div>
+                            <div className="h-full flex items-center justify-center text-primary/40 text-[11px] font-bold uppercase tracking-widest font-mono">No scheme selected</div>
                         ) : (
-                            <SchemeDetails
-                                scheme={selectedScheme}
-                                checkedDocuments={documentChecks[selectedScheme.id] || {}}
-                                onToggleDocument={toggleDocumentCheck}
-                            />
+                            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                                <SchemeDetails
+                                    scheme={selectedScheme}
+                                    checkedDocuments={documentChecks[selectedScheme.id] || {}}
+                                    onToggleDocument={toggleDocumentCheck}
+                                />
+                            </div>
                         )}
                     </section>
                 </div>
@@ -262,18 +268,21 @@ function BiodataRow({ label, value, status }: { label: string; value: string; st
     return (
         <div
             className={cx(
-                'rounded border p-2.5 space-y-1 transition-colors',
+                'rounded-2xl border p-3 space-y-1 transition-all duration-300',
                 status === 'match' && 'border-emerald-500/40 bg-emerald-500/10',
                 status === 'mismatch' && 'border-rose-500/40 bg-rose-500/10',
-                status === 'neutral' && 'border-slate-200 bg-white'
+                status === 'neutral' && 'border-border bg-background hover:border-emerald-400/30'
             )}
         >
             <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">{label}</p>
-                {status === 'match' && <span className="text-[10px] font-semibold text-emerald-700">Matched</span>}
-                {status === 'mismatch' && <span className="text-[10px] font-semibold text-rose-700">Not met</span>}
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-primary/60">{label}</p>
+                {status === 'match' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                {status === 'mismatch' && <CircleX className="w-3.5 h-3.5 text-rose-400" />}
             </div>
-            <p className="text-sm text-slate-900 font-medium break-words">{value}</p>
+            <p className="text-[13px] text-foreground font-bold tracking-tight break-words">{value}</p>
+            {status === 'mismatch' && (
+                <p className="text-[9px] font-bold text-rose-500/80 uppercase tracking-widest mt-1">Not met</p>
+            )}
         </div>
     );
 }
@@ -296,29 +305,38 @@ function SchemeCard({
         <button
             onClick={onSelect}
             className={cx(
-                'w-full text-left rounded border p-2.5 transition-colors',
-                selected ? 'border-cyan-400/40 bg-cyan-500/10' : 'border-slate-200 bg-white hover:bg-white'
+                'w-full text-left rounded-2xl border p-3 transition-all duration-300 relative group',
+                selected ? 'border-emerald-500/40 bg-emerald-500/10 shadow-md' : 'border-border bg-background hover:bg-emerald-500/5 hover:border-emerald-500/30'
             )}
         >
-            <div className="flex items-start justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900 leading-tight">{scheme.name}</p>
-                <span
+            <div className="flex items-start justify-between gap-3">
+                <p className="text-[13px] font-bold text-foreground leading-tight tracking-tight">{scheme.name}</p>
+                <div
                     className={cx(
-                        'text-[10px] px-1.5 py-0.5 rounded border font-semibold',
+                        'text-[8px] px-2 py-1 rounded-full border font-bold uppercase tracking-widest shrink-0',
                         isEligible
-                            ? 'text-emerald-700 border-emerald-500/40 bg-emerald-500/10'
+                            ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/40'
                             : isLikelyNotEligible
-                                ? 'text-amber-700 border-amber-500/40 bg-amber-500/10'
-                                : 'text-rose-700 border-rose-500/40 bg-rose-500/10'
+                                ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-500/30'
                     )}
                 >
-                    {isEligible ? 'Eligible' : isLikelyNotEligible ? 'Possibly eligible' : 'Not eligible'}
-                </span>
+                    {isEligible ? 'Eligible' : isLikelyNotEligible ? 'Possible' : 'Not Eligible'}
+                </div>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">{scheme.description}</p>
-            <div className="text-[10px] text-slate-500 mt-2 flex items-center gap-3">
-                <span>Criteria: {scheme.metCriteriaCount}/{scheme.totalCriteriaCount}</span>
-                <span>Documents: {checkedDocumentCount}/{scheme.totalDocumentCount}</span>
+            <p className="text-[11px] text-primary/60 font-medium mt-2 leading-relaxed">{scheme.description}</p>
+            <div className="mt-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="flex flex-col">
+                        <span className="text-[8px] font-bold text-primary/40 uppercase tracking-widest">Criteria</span>
+                        <span className="text-[10px] font-bold text-foreground">{scheme.metCriteriaCount}/{scheme.totalCriteriaCount}</span>
+                    </div>
+                </div>
+                <div className="h-8 w-px bg-border mx-2" />
+                <div className="flex-1 flex flex-col">
+                    <span className="text-[8px] font-bold text-primary/40 uppercase tracking-widest">Docs Verified</span>
+                    <span className="text-[10px] font-bold text-foreground">{checkedDocumentCount}/{scheme.totalDocumentCount}</span>
+                </div>
             </div>
         </button>
     );
@@ -342,49 +360,64 @@ function SchemeDetails({
 
     return (
         <div className="space-y-4">
-            <div className="border-b border-slate-200 pb-3">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <h2 className="text-lg font-semibold text-slate-900">{scheme.name}</h2>
-                    <span
+            <div className="pb-4 border-b border-border">
+                <div className="flex items-center justify-between gap-4 flex-wrap mb-4">
+                    <h2 className="text-xl font-bold text-foreground tracking-tight">{scheme.name}</h2>
+                    <div
                         className={cx(
-                            'text-[11px] px-2 py-1 rounded border font-semibold',
+                            'text-[10px] px-3 py-1.5 rounded-full border font-bold uppercase tracking-[0.15em] shadow-sm',
                             isEligible
-                                ? 'text-emerald-700 border-emerald-500/40 bg-emerald-500/10'
+                                ? 'bg-emerald-600 text-white border-emerald-600'
                                 : isLikelyNotEligible
-                                    ? 'text-amber-700 border-amber-500/40 bg-amber-500/10'
-                                    : 'text-rose-700 border-rose-500/40 bg-rose-500/10'
+                                    ? 'bg-amber-100 text-amber-700 border-amber-200'
+                                    : 'bg-rose-100 text-rose-700 border-rose-200'
                         )}
                     >
                         {isEligible
-                            ? 'Eligible based on current data'
+                            ? '✓ Eligible'
                             : isLikelyNotEligible
-                                ? 'Possibly eligible based on current data'
-                                : 'Not eligible based on current data'}
-                    </span>
+                                ? '⚡ Possibly Eligible'
+                                : '✕ Not Eligible'}
+                    </div>
                 </div>
-                <p className="text-[12px] text-slate-500 mt-1">{scheme.description}</p>
-                <p className="text-[11px] text-amber-800 mt-2 border border-amber-400/40 bg-amber-100 rounded px-2.5 py-1.5">
-                    Signal-based match: Yes/No profile markers are treated as preliminary. Exact scheme criteria and document classes need manual verification.
-                </p>
-                <p className="text-[11px] text-amber-800 mt-2 border border-amber-400/40 bg-amber-100 rounded px-2.5 py-1.5">
-                    ⚠️ Verify Ration Card: Ensure card type is explicitly correct (BPL/AAY/etc.) before proceeding with claim filing.
-                </p>
+                <p className="text-[13px] text-primary/60 font-medium leading-relaxed">{scheme.description}</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                    <div className="p-3 bg-amber-50/50 border border-amber-200/50 rounded-2xl flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+                            <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-bold text-amber-700 uppercase tracking-widest mb-1">Signal Verification</p>
+                            <p className="text-[11px] text-amber-800/80 font-medium leading-relaxed">Markers are preliminary. Scheme criteria needs manual verification.</p>
+                        </div>
+                    </div>
+                    <div className="p-3 bg-rose-50/40 border border-rose-200/60 rounded-2xl flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                            <span className="text-lg text-rose-600">⚠️</span>
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-bold text-rose-700 uppercase tracking-widest mb-1">Critical Check</p>
+                            <p className="text-[11px] text-rose-700/80 font-medium leading-relaxed">Ensure Ration Card type is explicitly correct (BPL/AAY/etc.)</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                <div className="rounded border border-emerald-400/40 bg-emerald-100 p-3">
-                    <h3 className="text-sm font-semibold text-emerald-800 mb-2">Criteria met</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="rounded-[2rem] border border-emerald-500/30 bg-emerald-500/10 p-4">
+                    <h3 className="text-[10px] font-bold text-emerald-700 uppercase tracking-[0.2em] mb-3">Criteria met</h3>
                     {metCriteria.length === 0 ? (
-                        <p className="text-[12px] text-emerald-700">No criteria met yet.</p>
+                        <p className="text-[11px] text-emerald-700/60 italic font-medium">No criteria met yet.</p>
                     ) : (
                         <ul className="space-y-2">
                             {metCriteria.map((criterion) => (
-                                <li key={criterion.id} className="text-[12px] text-emerald-900">
-                                    <div className="flex items-start gap-2">
-                                        <CheckCircle2 className="w-3.5 h-3.5 mt-0.5" />
+                                <li key={criterion.id} className="text-[12px] text-foreground">
+                                    <div className="flex items-start gap-3 bg-white/60 p-2 rounded-xl border border-emerald-500/20">
+                                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                                         <div>
-                                            <p className="font-medium">{criterion.label}</p>
-                                            <p className="text-emerald-800">{criterion.description}</p>
+                                            <p className="font-bold text-[13px]">{criterion.label}</p>
+                                            <p className="text-emerald-700/70 text-[11px] font-medium mt-0.5">{criterion.description}</p>
                                         </div>
                                     </div>
                                 </li>
@@ -393,19 +426,19 @@ function SchemeDetails({
                     )}
                 </div>
 
-                <div className="rounded border border-rose-400/40 bg-rose-100 p-3">
-                    <h3 className="text-sm font-semibold text-rose-800 mb-2">Criteria not met</h3>
+                <div className="rounded-[2rem] border border-rose-500/20 bg-rose-50/50 p-4">
+                    <h3 className="text-[10px] font-bold text-rose-700 uppercase tracking-[0.2em] mb-3">Criteria not met</h3>
                     {unmetCriteria.length === 0 ? (
-                        <p className="text-[12px] text-rose-700">All criteria are met.</p>
+                        <p className="text-[11px] text-emerald-600 font-bold">✓ All criteria are met.</p>
                     ) : (
                         <ul className="space-y-2">
                             {unmetCriteria.map((criterion) => (
-                                <li key={criterion.id} className="text-[12px] text-rose-900">
-                                    <div className="flex items-start gap-2">
-                                        <CircleX className="w-3.5 h-3.5 mt-0.5" />
+                                <li key={criterion.id} className="text-[12px]">
+                                    <div className="flex items-start gap-3 bg-white border border-rose-200 p-2 rounded-xl">
+                                        <CircleX className="w-4 h-4 text-rose-400 shrink-0" />
                                         <div>
-                                            <p className="font-medium">{criterion.label}</p>
-                                            <p className="text-rose-800">{criterion.description}</p>
+                                            <p className="font-bold text-[13px] text-rose-900">{criterion.label}</p>
+                                            <p className="text-rose-600/60 text-[11px] font-medium mt-0.5">{criterion.description}</p>
                                         </div>
                                     </div>
                                 </li>
@@ -415,37 +448,41 @@ function SchemeDetails({
                 </div>
             </div>
 
-            <div
-                className={cx(
-                    'rounded border p-3',
-                    allDocumentsChecked ? 'border-emerald-400/40 bg-emerald-100' : 'border-rose-400/40 bg-rose-100'
-                )}
-            >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                    <h3 className="text-sm font-semibold text-slate-900">Required documents</h3>
-                    <span className={cx('text-[10px] font-semibold', allDocumentsChecked ? 'text-emerald-700' : 'text-rose-700')}>
-                        {checkedCount}/{scheme.requiredDocuments.length} checked
-                    </span>
+            <div className={cx(
+                'rounded-[2rem] border p-4',
+                allDocumentsChecked ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-rose-500/20 bg-rose-50/20'
+            )}>
+                <div className="flex items-center justify-between gap-2 mb-3">
+                    <h3 className="text-[10px] font-bold text-foreground uppercase tracking-[0.2em]">Required documents</h3>
+                    <div className={cx(
+                        'px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border',
+                        allDocumentsChecked ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-rose-100 text-rose-700 border-rose-200'
+                    )}>
+                        {checkedCount}/{scheme.requiredDocuments.length} Verified
+                    </div>
                 </div>
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                     {scheme.requiredDocuments.map((document) => (
                         <button
                             key={document.id}
                             onClick={() => onToggleDocument(scheme.id, document.id)}
                             className={cx(
-                                'w-full rounded border p-2.5 text-left transition-colors',
+                                'w-full rounded-2xl border p-3 text-left transition-all duration-300 group',
                                 checkedDocuments[document.id]
-                                    ? 'border-emerald-400/40 bg-emerald-100'
-                                    : 'border-rose-400/40 bg-rose-100 hover:bg-rose-200/70'
+                                    ? 'border-emerald-500/40 bg-emerald-500/10 shadow-sm'
+                                    : 'border-rose-200 bg-white hover:bg-rose-50/60 hover:border-rose-300'
                             )}
                         >
                             <div className="flex items-center justify-between gap-2">
-                                <p className="text-sm font-medium text-slate-900">{document.name}</p>
-                                <span className={cx('text-[10px] font-semibold', checkedDocuments[document.id] ? 'text-emerald-700' : 'text-rose-700')}>
-                                    {checkedDocuments[document.id] ? 'Checked' : 'Unchecked'}
-                                </span>
+                                <p className="text-[13px] font-bold text-foreground">{document.name}</p>
+                                <div className={cx(
+                                    'w-5 h-5 rounded-full flex items-center justify-center transition-all',
+                                    checkedDocuments[document.id] ? 'bg-emerald-600 text-white' : 'bg-rose-50 border border-rose-200 text-rose-300'
+                                )}>
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                </div>
                             </div>
-                            <p className="text-[11px] mt-1 text-slate-600">{document.evidence}</p>
+                            <p className="text-[11px] mt-1.5 text-primary/60 font-medium leading-relaxed italic">{document.evidence}</p>
                         </button>
                     ))}
                 </div>

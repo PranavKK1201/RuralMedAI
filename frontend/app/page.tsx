@@ -376,14 +376,14 @@ export default function Home() {
     };
 
     return (
-        <main className="h-screen flex flex-col bg-[#f8fafc] text-foreground overflow-hidden text-[13px]">
+        <main className="h-screen flex flex-col bg-background text-foreground overflow-hidden text-[13px]">
             {/* Scribe Toolbar */}
-            <div className="flex-none bg-white border-b border-slate-200 px-4 py-1.5 flex items-center justify-center">
-                <div className="w-full max-w-4xl flex items-center gap-3 bg-slate-100 p-0.5 rounded-xl border border-slate-200 shadow-sm">
-                    <div className="flex items-center gap-2.5 px-3 py-1 bg-white/50 rounded-lg ml-0.5">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-nowrap">Mic</span>
+            <div className="flex-none bg-white/80 backdrop-blur-xl border-b border-border px-6 py-2.5 flex items-center justify-center z-50">
+                <div className="w-full max-w-5xl flex items-center gap-4 bg-secondary/50 p-1 rounded-2xl border border-border shadow-sm">
+                    <div className="flex items-center gap-2.5 px-4 py-1.5 bg-white rounded-xl shadow-sm border border-border/50 ml-0.5">
+                        <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest text-nowrap">Source</span>
                         <select
-                            className="bg-transparent text-[11px] font-bold text-slate-800 focus:outline-none cursor-pointer max-w-[220px] truncate"
+                            className="bg-transparent text-[11px] font-bold text-foreground focus:outline-none cursor-pointer max-w-[220px] truncate"
                             value={selectedDeviceId}
                             onChange={(e) => setSelectedDeviceId(e.target.value)}
                             disabled={isRecording}
@@ -396,56 +396,56 @@ export default function Home() {
                         </select>
                     </div>
 
-                    <div className="h-4 w-px bg-slate-300" />
+                    <div className="h-5 w-px bg-border/50" />
 
                     <div className="flex-1 px-4">
                         <AudioVisualizer isRecording={isRecording} />
                     </div>
 
-                    <div className="h-4 w-px bg-slate-300" />
+                    <div className="h-5 w-px bg-border/50" />
 
                     <div className="flex items-center gap-2 px-1">
                         <div className="flex items-center gap-1.5">
-                            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest pl-1">ID</span>
+                            <span className="text-[9px] font-bold text-primary/40 uppercase tracking-widest pl-1">Patient</span>
                             <input
                                 type="text"
                                 inputMode="numeric"
                                 value={activePatientId ? String(activePatientId) : ''}
                                 onChange={(e) => handlePatientIdChange(e.target.value)}
                                 placeholder="NEW"
-                                className="w-16 h-7 px-2 rounded bg-white text-[11px] font-mono border border-slate-200 outline-none focus:border-slate-400"
+                                className="w-20 h-8 px-3 rounded-xl bg-white text-[11px] font-bold border border-border/50 outline-none focus:border-primary/30 transition-all text-center"
                             />
                             <button
                                 onClick={handleStartNewEntry}
-                                className="h-7 w-7 flex items-center justify-center rounded border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors"
+                                className="h-8 w-8 flex items-center justify-center rounded-xl border border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 transition-all shadow-sm"
                             >
-                                <Plus className="w-3.5 h-3.5" />
+                                <Plus className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
 
-                    <div className="h-4 w-px bg-slate-300" />
+                    <div className="h-5 w-px bg-border/50" />
 
                     {!isRecording ? (
                         <button
                             onClick={handleStart}
-                            className="flex items-center gap-2 px-5 py-2 bg-slate-900 text-white rounded-lg text-[11px] font-bold hover:bg-slate-800 transition-all shadow-md ml-1"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl text-[11px] font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 ml-1"
                         >
-                            <Mic className="w-3 h-3" /> START
+                            <Mic className="w-3.5 h-3.5" /> START SESSION
                         </button>
                     ) : (
                         <button
                             onClick={handleStop}
-                            className="flex items-center gap-2 px-5 py-2 bg-rose-600 text-white rounded-lg text-[11px] font-bold hover:bg-rose-700 transition-all animate-pulse shadow-md ml-1"
+                            className="flex items-center gap-2 px-6 py-2.5 bg-rose-600 text-white rounded-xl text-[11px] font-bold hover:bg-rose-700 transition-all animate-pulse shadow-lg shadow-rose-200 ml-1"
                         >
-                            <Square className="w-3 h-3 fill-current" /> STOP
+                            <Square className="w-3.5 h-3.5 fill-current" /> STOP SESSION
                         </button>
                     )}
                 </div>
             </div>
 
-            <div className="flex-1 flex overflow-hidden bg-[#f3f4f6]">
-                <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200 relative bg-[#f3f4f6]">
+            <div className="flex-1 flex overflow-hidden bg-background">
+                <div className="flex-1 flex flex-col min-w-0 border-r border-border relative bg-background">
                     {/* Form Header REMOVED */}
 
                     {/* Scrollable Form Content */}
@@ -456,45 +456,48 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className="w-[300px] xl:w-[340px] flex flex-col bg-white border-l border-slate-200">
-                    <div className="flex-none p-3 border-b border-slate-200 space-y-2 bg-white">
+                <div className="w-[320px] xl:w-[380px] flex flex-col bg-white border-l border-border">
+                    <div className="flex-none p-4 border-b border-border space-y-3 bg-white">
                         <button
                             onClick={handleCommit}
                             disabled={isCommiting}
-                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 text-white hover:bg-slate-800 rounded font-bold transition-all disabled:opacity-50 uppercase tracking-[0.2em] text-[10px]"
+                            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary text-white hover:bg-primary/90 rounded-xl font-bold transition-all disabled:opacity-50 uppercase tracking-[0.1em] text-[10px] shadow-lg shadow-primary/10"
                         >
-                            {isCommiting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
-                            {entryMode === 'update' && activePatientId ? 'Update EHR' : 'Push to EHR'}
+                            {isCommiting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                            {entryMode === 'update' && activePatientId ? 'Update EHR Record' : 'Commit to EHR'}
                         </button>
 
                         <div className="grid grid-cols-2 gap-2">
                             <Link
                                 href="/patients"
-                                className="flex items-center justify-center gap-2 py-2 rounded bg-slate-100 border border-slate-200 hover:bg-slate-200 hover:border-slate-300 text-slate-900 font-bold transition-all text-[9px] uppercase tracking-widest"
+                                className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-secondary border border-border hover:bg-secondary/80 text-foreground font-bold transition-all text-[9px] uppercase tracking-widest"
                             >
-                                <FileText className="w-3 h-3" /> Archive
+                                <FileText className="w-3.5 h-3.5 text-primary/80" /> Archive
                             </Link>
                             <button
                                 onClick={handleResetSession}
-                                className="flex items-center justify-center gap-2 py-2 rounded bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 font-bold transition-all text-[9px] uppercase tracking-widest"
+                                className="flex items-center justify-center gap-2 py-2.5 rounded-xl bg-rose-50 border border-rose-100 hover:bg-rose-100 text-rose-700 font-bold transition-all text-[9px] uppercase tracking-widest"
                             >
-                                <Eraser className="w-3 h-3" /> Reset
+                                <Eraser className="w-3.5 h-3.5" /> Reset
                             </button>
                         </div>
                     </div>
 
-                    <div className="flex-none px-3 py-2 border-b border-slate-200 flex items-center justify-between bg-white">
-                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Session Stream</h3>
-                        <div className="flex items-center gap-1.5 text-[8px] text-slate-400 font-mono">
-                            <span className={`w-1 h-1 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-slate-300'}`} />
-                            {isConnected ? 'LIVE' : 'IDLE'}
+                    <div className="flex-none px-4 py-3 border-b border-border flex items-center justify-between bg-background/50">
+                        <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary/80">Session Stream</h3>
+                        <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-bold tracking-tighter">
+                            <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-primary shadow-[0_0_8px_rgba(75,83,32,0.5)]' : 'bg-border'}`} />
+                            {isConnected ? 'STREAMING' : 'OFFLINE'}
                         </div>
                     </div>
 
                     <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
                         {transcript.length === 0 && (
-                            <div className="h-full flex flex-col items-center justify-center text-center p-4 opacity-20">
-                                <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-500">Awaiting Uplink...</p>
+                            <div className="h-full flex flex-col items-center justify-center text-center p-6 opacity-30">
+                                <div className="w-12 h-12 rounded-full border-2 border-dashed border-primary/20 flex items-center justify-center mb-4">
+                                    <Clock3 className="w-6 h-6 text-primary/20" />
+                                </div>
+                                <p className="text-[9px] font-bold uppercase tracking-[0.4em] text-primary/40">Awaiting Signal...</p>
                             </div>
                         )}
 
@@ -507,20 +510,20 @@ export default function Home() {
                                     className="text-[12px]"
                                 >
                                     {item.type === 'text' ? (
-                                        <div className="group relative space-y-1">
-                                            <p className="text-slate-700 whitespace-pre-wrap leading-relaxed font-mono text-[11px]">{item.content}</p>
-                                            <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <div className="h-px flex-1 bg-slate-200" />
-                                                <span className="text-[8px] text-slate-400 font-mono">{item.timestamp}</span>
+                                        <div className="group relative space-y-2">
+                                            <p className="text-foreground/80 whitespace-pre-wrap leading-relaxed font-sans font-medium text-[12px]">{item.content}</p>
+                                            <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="h-px flex-1 bg-border/50" />
+                                                <span className="text-[8px] text-muted-foreground font-bold uppercase tracking-widest">{item.timestamp}</span>
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="my-2 p-3 rounded bg-slate-50 border border-slate-200 space-y-1.5">
+                                        <div className="my-3 p-4 rounded-2xl bg-primary/5 border border-primary/10 space-y-2 shadow-sm">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">{item.toolInfo?.field}</span>
-                                                <span className="text-[8px] text-slate-400 font-mono">{item.timestamp}</span>
+                                                <span className="text-[9px] font-bold text-primary uppercase tracking-[0.1em]">{item.toolInfo?.field}</span>
+                                                <span className="text-[8px] text-primary/40 font-bold uppercase tracking-widest">{item.timestamp}</span>
                                             </div>
-                                            <p className="text-[10px] font-mono text-slate-500 truncate bg-slate-100 p-1.5 rounded border border-slate-200">
+                                            <p className="text-[11px] font-medium text-foreground/70 truncate bg-white/50 p-2 rounded-xl border border-primary/5">
                                                 {typeof item.toolInfo?.value === 'string' ? item.toolInfo.value : JSON.stringify(item.toolInfo?.value)}
                                             </p>
                                         </div>
@@ -530,8 +533,8 @@ export default function Home() {
                         </AnimatePresence>
                     </div>
 
-                    <div className="flex-none p-3 border-t border-slate-200 bg-slate-100 text-[8px] tracking-[0.4em] uppercase font-bold text-center text-slate-400">
-                        SESSION CACHE ACTIVE • AES-256
+                    <div className="flex-none p-4 border-t border-border bg-secondary/50 text-[9px] tracking-[0.4em] uppercase font-black text-center text-primary/30">
+                        SESSION SECURE • END-TO-END
                     </div>
                 </div>
             </div>

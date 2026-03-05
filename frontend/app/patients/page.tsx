@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, User, Activity, Calendar, FileText, Search, ClipboardList, Trash2, ChevronRight, Receipt, Stethoscope } from 'lucide-react';
+import { ArrowLeft, User, Activity, Calendar, FileText, Search, ClipboardList, Trash2, ChevronRight, Receipt, Stethoscope, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { getAyushmanTemplate, getCGHSTemplate, getECHSTemplate } from '../utils/documentTemplates';
 
@@ -86,18 +86,18 @@ export default function PatientsPage() {
     };
 
     return (
-        <main className="h-screen flex flex-col bg-[#f8fafc] text-foreground overflow-hidden">
-            <div className="flex-none bg-white border-b border-slate-200 px-4 py-2 flex items-center justify-between gap-4">
-                <h1 className="text-sm font-bold tracking-tight text-slate-900 uppercase">Records <span className="text-slate-400">/</span> Patients</h1>
+        <main className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+            <div className="flex-none bg-white/80 backdrop-blur-xl border-b border-border px-6 py-4 flex items-center justify-between gap-4">
+                <h1 className="text-sm font-bold tracking-[0.1em] text-foreground uppercase">Archives <span className="text-primary/20">/</span> Patient Registry</h1>
 
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 text-slate-400" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-primary/40" />
                     <input
                         type="search"
-                        placeholder="Search records..."
+                        placeholder="Search patient records..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 pr-4 py-1.5 bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-mono focus:bg-white focus:border-slate-400 outline-none w-[260px] text-slate-900 transition-all uppercase"
+                        className="pl-11 pr-4 py-2 bg-secondary/50 border border-border rounded-xl text-[11px] font-bold focus:bg-white focus:border-primary/30 outline-none w-[320px] text-foreground transition-all uppercase tracking-wider"
                     />
                 </div>
             </div>
@@ -113,102 +113,102 @@ export default function PatientsPage() {
                         {filteredPatients.map((patient) => (
                             <motion.div
                                 key={patient.id}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="bg-slate-50 border border-slate-200 rounded-lg p-4 group hover:border-slate-300 hover:bg-white transition-all cursor-pointer relative"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="bg-white border border-border rounded-3xl p-5 group hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all cursor-pointer relative"
                                 onClick={() => setSelectedPatient(patient)}
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded border border-slate-200 bg-white/5 flex items-center justify-center text-slate-500">
-                                            <User className="w-4 h-4" />
+                                <div className="flex items-start justify-between mb-5">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-2xl border border-primary/10 bg-primary/5 flex items-center justify-center text-primary">
+                                            <User className="w-5 h-5" />
                                         </div>
                                         <div>
-                                            <h3 className="font-bold text-xs tracking-tight text-slate-900 truncate max-w-[140px] uppercase">{patient.name || "Unknown"}</h3>
-                                            <p className="text-[9px] text-slate-400 font-mono">{patient.age}Y • {patient.gender}</p>
+                                            <h3 className="font-bold text-sm tracking-tight text-foreground truncate max-w-[140px] uppercase">{patient.name || "Unknown"}</h3>
+                                            <p className="text-[10px] text-muted-foreground font-bold tracking-tight">{patient.age}Y • {patient.gender}</p>
                                         </div>
                                     </div>
-                                    <span className="text-[8px] font-mono text-slate-400 bg-white/5 px-1.5 py-0.5 rounded border border-slate-200">
-                                        {String(patient.id ?? '').slice(0, 8)}
+                                    <span className="text-[9px] font-bold text-primary/40 bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
+                                        #{String(patient.id ?? '').slice(0, 8)}
                                     </span>
                                 </div>
 
-                                <div className="space-y-4">
-                                    <div className="p-3 bg-[#f6f7fb]/40 border border-slate-200 rounded space-y-2">
-                                        <div className="flex items-center gap-2 text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                                            <Activity className="w-2.5 h-2.5" /> Biometrics
+                                <div className="space-y-5">
+                                    <div className="p-4 bg-secondary/30 border border-border rounded-2xl space-y-2.5">
+                                        <div className="flex items-center gap-2 text-[9px] font-bold text-primary/40 uppercase tracking-[0.3em]">
+                                            <Activity className="w-3 h-3" /> Biometrics
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2 text-[10px]">
-                                            <div><span className="text-slate-400 font-mono">BP:</span> <span className="font-mono text-slate-600">{patient.vitals?.blood_pressure || "--"}</span></div>
-                                            <div><span className="text-slate-400 font-mono">HR:</span> <span className="font-mono text-slate-600">{patient.vitals?.pulse || "--"}</span></div>
+                                        <div className="grid grid-cols-2 gap-3 text-[11px]">
+                                            <div><span className="text-muted-foreground/50 font-bold uppercase tracking-tighter text-[9px] mr-1">BP</span> <span className="font-bold text-foreground/80">{patient.vitals?.blood_pressure || "--"}</span></div>
+                                            <div><span className="text-muted-foreground/50 font-bold uppercase tracking-tighter text-[9px] mr-1">HR</span> <span className="font-bold text-foreground/80">{patient.vitals?.pulse || "--"}</span></div>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                                            <FileText className="w-2.5 h-2.5" /> Impression
+                                    <div className="space-y-2">
+                                        <div className="flex items-center gap-2 text-[9px] font-bold text-primary/40 uppercase tracking-[0.3em]">
+                                            <FileText className="w-3 h-3" /> Impression
                                         </div>
-                                        <p className="text-[11px] font-medium text-slate-600 line-clamp-2 leading-relaxed italic">
-                                            "{patient.tentative_doctor_diagnosis || patient.initial_llm_diagnosis || "No diagnosis"}"
+                                        <p className="text-[12px] font-medium text-foreground/70 line-clamp-2 leading-relaxed italic">
+                                            "{patient.tentative_doctor_diagnosis || patient.initial_llm_diagnosis || "No clinical findings recorded"}"
                                         </p>
 
                                         {/* ICD-10-CM Code Badges */}
                                         {Array.isArray(patient.icd10_codes) && patient.icd10_codes.length > 0 && (
-                                            <div className="flex flex-wrap gap-1 pt-1">
+                                            <div className="flex flex-wrap gap-1.5 pt-1.5">
                                                 {patient.icd10_codes.slice(0, 2).map((c: any, i: number) => (
-                                                    <span key={i} className="px-1.5 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 text-[8px] font-mono rounded font-bold">
+                                                    <span key={i} className="px-2 py-0.5 bg-primary/5 border border-primary/10 text-primary text-[9px] font-bold rounded-lg uppercase tracking-tighter">
                                                         {c.code}
                                                     </span>
                                                 ))}
                                                 {patient.icd10_codes.length > 2 && (
-                                                    <span className="px-1.5 py-0.5 text-slate-400 text-[8px] font-mono">+{patient.icd10_codes.length - 2}</span>
+                                                    <span className="px-2 py-0.5 text-muted-foreground/40 text-[9px] font-bold">+{patient.icd10_codes.length - 2}</span>
                                                 )}
                                             </div>
                                         )}
                                         {/* ICD-10-PCS Procedure Badge Count */}
                                         {Array.isArray(patient.procedure_codes) && patient.procedure_codes.length > 0 && (
-                                            <div className="flex items-center gap-1 pt-0.5">
-                                                <Receipt className="w-2 h-2 text-violet-500" />
-                                                <span className="text-[8px] font-mono text-violet-600">{patient.procedure_codes.length} procedure code{patient.procedure_codes.length > 1 ? 's' : ''}</span>
+                                            <div className="flex items-center gap-2 pt-1">
+                                                <Receipt className="w-3 h-3 text-primary/40" />
+                                                <span className="text-[9px] font-bold text-primary/40 uppercase tracking-tighter">{patient.procedure_codes.length} PCS CODE{patient.procedure_codes.length > 1 ? 'S' : ''}</span>
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
-                                        <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-mono">
-                                            <Calendar className="w-2.5 h-2.5" />
+                                    <div className="pt-5 border-t border-border flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-bold uppercase tracking-tighter">
+                                            <Calendar className="w-3 h-3" />
                                             {new Date(patient.created_at).toLocaleDateString()}
                                         </div>
-                                        <button
-                                            className="p-1.5 text-slate-400 hover:text-emerald-500 hover:bg-emerald-500/5 rounded transition-all opacity-0 group-hover:opacity-100 mr-1"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPatientToExport(patient);
-                                            }}
-                                            title="Export Official Document"
-                                        >
-                                            <FileText className="w-3 h-3" />
-                                        </button>
-                                        <Link
-                                            href={`/?patient_id=${patient.id}`}
-                                            className="p-1.5 text-slate-400 hover:text-blue-500 hover:bg-blue-500/5 rounded transition-all opacity-0 group-hover:opacity-100 mr-1"
-                                            onClick={(e) => e.stopPropagation()}
-                                            title="Resume Session"
-                                        >
-                                            <div className="w-3 h-3 border border-current rounded-sm flex items-center justify-center">
-                                                <div className="w-0.5 h-0.5 bg-current rounded-full" />
-                                            </div>
-                                        </Link>
-                                        <button
-                                            className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/5 rounded transition-all opacity-0 group-hover:opacity-100"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setPatientToDelete(patient);
-                                            }}
-                                            title="Delete Record"
-                                        >
-                                            <Trash2 className="w-3 h-3" />
-                                        </button>
+                                        <div className="flex items-center gap-1">
+                                            <button
+                                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPatientToExport(patient);
+                                                }}
+                                                title="Export Official Document"
+                                            >
+                                                <FileText className="w-4 h-4" />
+                                            </button>
+                                            <Link
+                                                href={`/?patient_id=${patient.id}`}
+                                                className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                                                onClick={(e) => e.stopPropagation()}
+                                                title="Resume Session"
+                                            >
+                                                <RefreshCw className="w-4 h-4" />
+                                            </Link>
+                                            <button
+                                                className="p-2 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setPatientToDelete(patient);
+                                                }}
+                                                title="Delete Record"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </motion.div>
@@ -232,20 +232,20 @@ export default function PatientsPage() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 className="bg-white border border-slate-200 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
                             >
-                                <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded border border-slate-200 bg-white/5 flex items-center justify-center text-slate-500">
-                                            <User className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-lg font-bold tracking-tight text-slate-900 uppercase">{selectedPatient.name}</h2>
-                                            <p className="text-[10px] font-mono text-slate-400 uppercase">{selectedPatient.age}Y • {selectedPatient.gender} • ID:{selectedPatient.id}</p>
-                                        </div>
+                            <div className="p-4 border-b border-border flex items-center justify-between bg-primary/5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl border border-primary/20 bg-background flex items-center justify-center text-primary/60 shadow-sm">
+                                        <User className="w-5 h-5" />
                                     </div>
-                                    <button
-                                        onClick={() => setSelectedPatient(null)}
-                                        className="p-2 hover:bg-white/5 rounded-full transition-colors text-slate-500 hover:text-slate-900"
-                                    >
+                                    <div>
+                                        <h2 className="text-lg font-bold tracking-tight text-foreground uppercase">{selectedPatient.name}</h2>
+                                        <p className="text-[10px] font-mono text-primary/40 uppercase">{selectedPatient.age}Y • {selectedPatient.gender} • ID:{selectedPatient.id}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => setSelectedPatient(null)}
+                                    className="p-2 hover:bg-primary/5 rounded-full transition-colors text-primary/40 hover:text-primary"
+                                >
                                         <ArrowLeft className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -424,7 +424,7 @@ export default function PatientsPage() {
 
                                 <button
                                     onClick={() => setPatientToExport(null)}
-                                    className="w-full py-3 rounded-lg border border-slate-200 hover:bg-white/5 text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-900 transition-colors"
+                                    className="w-full py-3 rounded-xl border border-border hover:bg-primary/5 text-xs font-bold uppercase tracking-widest text-primary/40 hover:text-primary transition-colors"
                                 >
                                     Cancel
                                 </button>

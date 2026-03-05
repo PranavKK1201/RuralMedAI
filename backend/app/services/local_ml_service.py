@@ -1,12 +1,13 @@
 # backend/app/services/local_ml_service.py
 import json
 import asyncio
+import os
 from fastapi import WebSocket
 import websockets
 
 class LocalMLService:
-    def __init__(self, ml_node_url: str = "ws://127.0.0.1:8002/ws/process-audio"):
-        self.ml_node_url = ml_node_url
+    def __init__(self, ml_node_url: str | None = None):
+        self.ml_node_url = ml_node_url or os.getenv("ML_NODE_URL", "ws://127.0.0.1:8002/ws/process-audio")
         self.ml_websocket = None
     
     async def handle_session(self, browser_ws: WebSocket):

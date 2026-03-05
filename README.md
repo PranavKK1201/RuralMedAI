@@ -22,10 +22,11 @@
 ## 🚀 How to Run
 
 ### Option A: Docker (Recommended)
-This starts **PostgreSQL + Backend + Frontend** in one command with shared memory and data persistence.
+This starts **PostgreSQL + Backend + Frontend + ML Service** in one command with shared memory and data persistence.
 
-1. Copy `.env.example` to `.env` and fill in `AES_256_KEY` and `GEMINI_API_KEY`.
-2. Run from the project root:
+1. Copy `.env.example` to `.env` and fill in `AES_256_KEY`, `GEMINI_API_KEY`, and `GROQ_API_KEY`.
+2. Place your Qwen `.gguf` model file under a local folder mounted to `/models` (default `LLAMA_MODEL_PATH=/models/Qwen3.5-2B-UD-Q4_K_XL.gguf`), or set `LLAMA_MODEL_URL` in `.env` for auto-download.
+3. Run from the project root:
    ```bash
    docker compose up --build
    ```
@@ -33,6 +34,8 @@ This starts **PostgreSQL + Backend + Frontend** in one command with shared memor
 **Services:**
 - Frontend: `http://localhost:3000`
 - Backend API: `http://localhost:8003` (Indexing progress visible in `docker logs`)
+- ML Service API: `http://localhost:8002`
+- llama.cpp completion endpoint: `http://localhost:8081/completion`
 
 ---
 

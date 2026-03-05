@@ -37,29 +37,29 @@ export function LiveForm({ data }: LiveFormProps) {
     }, [data, setValue, watch]);
 
     return (
-        <div className="space-y-2 p-2 bg-transparent h-full flex flex-col overflow-hidden">
-            <div className="bg-white border border-slate-300 rounded-2xl px-4 py-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center">
-                        <ClipboardList className="w-4 h-4 text-slate-700" />
+        <div className="space-y-4 p-4 bg-transparent h-full flex flex-col overflow-hidden">
+            <div className="bg-white border border-border shadow-sm rounded-3xl px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-center">
+                        <ClipboardList className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                        <h2 className="text-sm font-semibold tracking-[0.18rem] uppercase text-slate-800">Intelligent Clinical Scribe</h2>
-                        <p className="text-[10px] text-slate-500 uppercase tracking-[0.14em] font-mono mt-0.5">Real-time data extraction and analysis</p>
+                        <h2 className="text-sm font-bold tracking-[0.2em] uppercase text-foreground">Intelligent Clinical Scribe</h2>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.14em] font-medium mt-1">Real-time data extraction and analysis</p>
                     </div>
                 </div>
-                <div className="px-3 py-1.5 bg-slate-50 rounded-xl border border-slate-200 flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-semibold text-slate-700 uppercase tracking-wider">Live extraction</span>
+                <div className="px-4 py-2 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-3">
+                    <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(75,83,32,0.4)] animate-pulse" />
+                    <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Live extraction</span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 flex-1">
-                <section className="bg-white border border-slate-300 rounded-2xl p-3">
-                    <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1px_1fr] gap-3 items-center">
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
-                                <User className="w-3.5 h-3.5" /> Identification
+            <div className="grid grid-cols-1 gap-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                <section className="bg-white border border-border shadow-sm rounded-[2rem] p-5">
+                    <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1px_1fr] gap-6 items-center">
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-primary/80 uppercase tracking-[0.2em]">
+                                <User className="w-4 h-4" /> Identification
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                                 <div className="md:col-span-2">
@@ -79,11 +79,11 @@ export function LiveForm({ data }: LiveFormProps) {
                             />
                         </div>
 
-                        <div className="hidden md:block w-px h-[82%] bg-slate-300 self-center" />
+                        <div className="hidden md:block w-px h-[82%] bg-border self-center" />
 
-                        <div className="flex flex-col justify-center gap-2 w-full max-w-[420px] md:mx-auto">
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
-                                <Thermometer className="w-3.5 h-3.5" /> Biometrics
+                        <div className="flex flex-col justify-center gap-4 w-full max-w-[420px] md:mx-auto">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-primary/80 uppercase tracking-[0.2em]">
+                                <Thermometer className="w-4 h-4" /> Biometrics
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                                 <VitalField label="BP" name="vitals.blood_pressure" register={register} highlight={lastUpdatedField === 'vitals'} unit="mmHg" />
@@ -95,24 +95,24 @@ export function LiveForm({ data }: LiveFormProps) {
                     </div>
                 </section>
 
-                <section className="bg-white border border-slate-300 rounded-2xl p-3 space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
-                        <CreditCard className="w-3.5 h-3.5" /> Eligibility Verification
+                <section className="bg-white border border-border shadow-sm rounded-[2rem] p-5 space-y-4">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-primary/60 uppercase tracking-[0.2em]">
+                        <CreditCard className="w-4 h-4" /> Eligibility Verification
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1px_1fr] gap-3 items-center">
+                    <div className="grid grid-cols-1 md:grid-cols-[1.6fr_1px_1fr] gap-6 items-center">
                         <div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-slate-800">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-foreground">
                                 <InputField label="Ration Card" name="ration_card_type" register={register} highlight={lastUpdatedField === 'ration_card_type'} placeholder="Yes/No" />
                                 <InputField label="Income" name="income" register={register} highlight={lastUpdatedField === 'income'} placeholder="Per month" />
                                 <InputField label="Occupation" name="occupation" register={register} highlight={lastUpdatedField === 'occupation'} placeholder="Occupation" />
-                                <InputField label="Caste Category" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC" />
-                                <InputField label="Housing Type" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kutcha/Pucca" />
+                                <InputField label="Caste" name="caste_category" register={register} highlight={lastUpdatedField === 'caste_category'} placeholder="SC/ST/OBC" />
+                                <InputField label="Housing" name="housing_type" register={register} highlight={lastUpdatedField === 'housing_type'} placeholder="Kutcha/Pucca" />
                                 <InputField label="Location" name="location" register={register} highlight={lastUpdatedField === 'location'} placeholder="State/City" />
                             </div>
                         </div>
 
-                        <div className="hidden md:block w-px h-[82%] bg-slate-300 self-center" />
+                        <div className="hidden md:block w-px h-[82%] bg-border self-center" />
 
                         <div className="flex items-center self-center">
                             <div className="w-full md:mx-auto">
@@ -122,12 +122,12 @@ export function LiveForm({ data }: LiveFormProps) {
                     </div>
                 </section>
 
-                <section className="bg-white border border-slate-300 rounded-2xl p-3 space-y-2">
-                    <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
-                        <Activity className="w-3.5 h-3.5" /> Clinical Intelligence
+                <section className="bg-white border border-border shadow-sm rounded-[2rem] p-5 space-y-4">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-primary/60 uppercase tracking-[0.2em]">
+                        <Activity className="w-4 h-4" /> Clinical Intelligence
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                         <ListSection title="Symptoms" items={data.symptoms} highlight={lastUpdatedField === 'symptoms'} placeholder="No symptoms captured" />
                         <ListSection title="Medications" items={data.medications} highlight={lastUpdatedField === 'medications'} placeholder="No medications captured" />
                         <ListSection title="Procedures" items={data.procedures} highlight={lastUpdatedField === 'procedures'} placeholder="No procedures captured" />
@@ -159,15 +159,15 @@ export function LiveForm({ data }: LiveFormProps) {
                 </section>
 
                 {/* ICD-10 & Billing Panel */}
-                <section className="bg-white border border-slate-300 rounded-2xl p-3 space-y-2">
+                <section className="bg-white border border-border shadow-sm rounded-[2rem] p-5 space-y-4">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em]">
-                            <Receipt className="w-3.5 h-3.5" /> ICD-10 Billing Codes
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-primary/60 uppercase tracking-[0.2em]">
+                            <Receipt className="w-4 h-4" /> ICD-10 Billing Codes
                         </div>
                         {data.billing_summary?.coding_status && (
-                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border ${data.billing_summary.coding_status === 'confirmed'
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                    : 'bg-blue-50 text-blue-600 border-blue-200'
+                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full border ${data.billing_summary.coding_status === 'confirmed'
+                                    ? 'bg-primary/10 text-primary border-primary/20'
+                                    : 'bg-accent/50 text-accent-foreground border-accent'
                                 }`}>
                                 {data.billing_summary.coding_status === 'confirmed' ? '✓ Confirmed' : '⚡ Auto-coded'}
                             </span>
@@ -223,10 +223,10 @@ export function LiveForm({ data }: LiveFormProps) {
                     )}
 
                     {data.id && (
-                        <div className="pt-1 border-t border-slate-100">
+                        <div className="pt-2 border-t border-border">
                             <a
                                 href={`/diagnostics?patient_id=${data.id}`}
-                                className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 transition-colors uppercase tracking-widest"
+                                className="text-[10px] font-bold text-primary hover:text-primary/80 transition-colors uppercase tracking-[0.2em]"
                             >
                                 View &amp; Confirm Full Billing Claim →
                             </a>
@@ -256,11 +256,11 @@ function EligibilityStatus({ data }: { data: any }) {
     const reasons = backendData?.pmjay?.reasons || [];
 
     return (
-        <div className="bg-slate-200 border border-slate-300 rounded-xl p-2.5 w-full min-h-[128px] space-y-2">
+        <div className="bg-background border border-border shadow-inner rounded-3xl p-4 w-full min-h-[128px] space-y-3">
             <div className="flex items-center justify-between">
-                <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-[0.2em]">Eligibility Record</span>
+                <span className="text-[10px] font-bold text-primary/80 uppercase tracking-[0.2em]">Eligibility Record</span>
                 {backendData && (
-                    <span className="text-[9px] font-semibold text-cyan-700 bg-cyan-50 px-2 py-0.5 border border-cyan-200 rounded-lg">Verified</span>
+                    <span className="text-[9px] font-bold text-primary bg-primary/10 px-3 py-1 border border-primary/20 rounded-xl">Verified</span>
                 )}
             </div>
 
@@ -292,11 +292,11 @@ function EligibilityStatus({ data }: { data: any }) {
 function StatusRow({ label, eligible }: { label: string; eligible: boolean }) {
     return (
         <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-                {eligible ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <Info className="w-3.5 h-3.5 text-slate-400" />}
-                <span className="text-[12px] font-semibold text-slate-700">{label}</span>
+            <div className="flex items-center gap-2">
+                {eligible ? <CheckCircle2 className="w-4 h-4 text-primary" /> : <Info className="w-4 h-4 text-muted-foreground/40" />}
+                <span className="text-[13px] font-bold text-foreground/80">{label}</span>
             </div>
-            <span className={`text-[10px] font-semibold uppercase tracking-wider ${eligible ? 'text-emerald-600' : 'text-slate-500'}`}>
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${eligible ? 'text-primary' : 'text-muted-foreground'}`}>
                 {eligible ? 'Eligible' : 'Pending'}
             </span>
         </div>
@@ -305,24 +305,24 @@ function StatusRow({ label, eligible }: { label: string; eligible: boolean }) {
 
 const DARK_TEXT_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12'%3E%3Cline x1='1' y1='0' x2='7' y2='0' stroke='black' stroke-width='1.5'/%3E%3Cline x1='4' y1='0' x2='4' y2='12' stroke='black' stroke-width='1.5'/%3E%3Cline x1='1' y1='12' x2='7' y2='12' stroke='black' stroke-width='1.5'/%3E%3C/svg%3E") 4 6, text`;
 
-function InputField({ label, name, register, highlight, isTextArea, placeholder, minHeight = 'h-[44px]' }: any) {
+function InputField({ label, name, register, highlight, isTextArea, placeholder, minHeight = 'h-[48px]' }: any) {
     return (
         <div className="relative group w-full flex flex-col">
-            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-[0.2em] mb-1 px-0.5">{label}</label>
-            <div className={`relative transition-all duration-300 rounded-xl border ${highlight ? 'border-emerald-500 bg-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.9)] z-10' : 'border-slate-300 bg-slate-200'}`}>
+            <label className="block text-[10px] font-bold text-primary/80 uppercase tracking-[0.15em] mb-1.5 px-0.5">{label}</label>
+            <div className={`relative transition-all duration-500 rounded-2xl border ${highlight ? 'border-primary bg-primary/5 shadow-[0_0_30px_rgba(75,83,32,0.15)] z-10' : 'border-border bg-background hover:border-primary/30'}`}>
                 {isTextArea ? (
                     <textarea
                         {...register(name)}
                         placeholder={placeholder}
                         style={{ cursor: DARK_TEXT_CURSOR }}
-                        className={`w-full p-2.5 text-[13px] bg-transparent outline-none placeholder:text-slate-400 ${minHeight} resize-none leading-relaxed font-mono text-slate-800`}
+                        className={`w-full p-3 text-[13px] bg-transparent outline-none placeholder:text-muted-foreground/30 ${minHeight} resize-none leading-relaxed font-sans font-medium text-foreground`}
                     />
                 ) : (
                     <input
                         {...register(name)}
                         placeholder={placeholder}
                         style={{ cursor: DARK_TEXT_CURSOR }}
-                        className="w-full h-9 p-2.5 text-[13px] bg-transparent outline-none placeholder:text-slate-400 font-mono text-slate-800"
+                        className="w-full h-10 p-3 text-[13px] bg-transparent outline-none placeholder:text-muted-foreground/30 font-sans font-medium text-foreground"
                     />
                 )}
             </div>
@@ -332,16 +332,16 @@ function InputField({ label, name, register, highlight, isTextArea, placeholder,
 
 function VitalField({ label, name, register, highlight, unit }: any) {
     return (
-        <div className={`p-2 rounded-xl border transition-all duration-300 h-[66px] flex flex-col justify-between ${highlight ? 'border-emerald-500 bg-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.9)] z-10' : 'border-slate-300 bg-slate-200'}`}>
-            <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{label}</label>
+        <div className={`p-3 rounded-2xl border transition-all duration-500 h-[72px] flex flex-col justify-between ${highlight ? 'border-primary bg-primary/5 shadow-[0_0_30px_rgba(75,83,32,0.15)] z-10' : 'border-border bg-background hover:border-primary/30'}`}>
+            <label className="block text-[10px] font-bold text-primary/80 uppercase tracking-widest">{label}</label>
             <div className="flex items-end gap-1.5">
                 <input
                     {...register(name)}
                     style={{ cursor: DARK_TEXT_CURSOR }}
-                    className="w-full bg-transparent text-xl font-semibold font-mono outline-none text-slate-800 placeholder:text-slate-300 leading-none"
+                    className="w-full bg-transparent text-2xl font-bold font-sans outline-none text-foreground placeholder:text-muted-foreground/20 leading-none"
                     placeholder="--"
                 />
-                <span className="text-[10px] font-semibold text-slate-500 mb-1">{unit}</span>
+                <span className="text-[10px] font-bold text-primary/40 mb-1">{unit}</span>
             </div>
         </div>
     );
@@ -352,25 +352,25 @@ function ListSection({ title, items, highlight, placeholder }: any) {
 
     return (
         <div className="space-y-1.5 flex flex-col h-full">
-            <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">{title}</label>
-            <div className={`p-2 transition-all duration-300 min-h-[56px] rounded-xl border flex-1 ${highlight ? 'border-emerald-500 bg-emerald-100 shadow-[0_0_25px_rgba(16,185,129,0.9)] z-10' : 'border-slate-300 bg-slate-200'}`} style={{ cursor: DARK_TEXT_CURSOR }}>
+            <label className="text-[10px] font-bold text-primary/80 uppercase tracking-[0.15em]">{title}</label>
+            <div className={`p-3 transition-all duration-500 min-h-[64px] rounded-2xl border flex-1 ${highlight ? 'border-primary bg-primary/5 shadow-[0_0_30px_rgba(75,83,32,0.15)] z-10' : 'border-border bg-background'}`} style={{ cursor: DARK_TEXT_CURSOR }}>
                 <AnimatePresence mode="popLayout">
                     {list.length ? (
-                        <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-2">
                             {list.map((entry: string) => (
                                 <motion.div
                                     key={entry}
                                     initial={{ opacity: 0, x: -5 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    className="text-[12px] text-slate-700 font-mono flex items-center gap-1.5"
+                                    className="text-[12px] text-foreground/80 font-medium flex items-center gap-2"
                                 >
-                                    <span className="w-1 h-1 rounded-full bg-slate-400" />
+                                    <span className="w-1 h-1 rounded-full bg-primary/30" />
                                     {entry}
                                 </motion.div>
                             ))}
                         </div>
                     ) : (
-                        <span className="text-[11px] text-slate-400 font-mono">{placeholder}</span>
+                        <span className="text-[11px] text-muted-foreground/30 font-medium italic">{placeholder}</span>
                     )}
                 </AnimatePresence>
             </div>
