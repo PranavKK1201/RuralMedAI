@@ -44,6 +44,7 @@ if [ ! -f "${LLAMA_MODEL_PATH}" ]; then
 fi
 
 echo "Starting llama-server on port ${LLAMA_PORT}..."
+echo "Llama runtime: ctx=${LLAMA_CONTEXT_SIZE}, parallel=${LLAMA_N_PARALLEL}, threads=${LLAMA_THREADS}, batch_threads=${LLAMA_BATCH_THREADS}"
 echo "Speculative decoding: type=${LLAMA_SPEC_TYPE}, ngram_n=${LLAMA_SPEC_NGRAM_SIZE_N}, draft_min=${LLAMA_DRAFT_MIN}, draft_max=${LLAMA_DRAFT_MAX}"
 (
 cd "${LLAMA_SERVER_DIR}"

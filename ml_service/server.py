@@ -5,6 +5,7 @@ import json
 import logging
 import re
 from collections import deque
+from difflib import SequenceMatcher
 import httpx
 import numpy as np
 import base64
@@ -31,7 +32,7 @@ QWEN_TOP_P = float(os.getenv("QWEN_TOP_P", "0.9"))
 QWEN_TOP_K = int(os.getenv("QWEN_TOP_K", "20"))
 QWEN_PRESENCE_PENALTY = float(os.getenv("QWEN_PRESENCE_PENALTY", "1.5"))
 QWEN_N_KEEP = int(os.getenv("QWEN_N_KEEP", "192"))
-VAD_MIN_RMS = float(os.getenv("VAD_MIN_RMS", "0.004"))
+VAD_MIN_RMS = float(os.getenv("VAD_MIN_RMS", "0.0055"))
 VAD_START_RATIO = float(os.getenv("VAD_START_RATIO", "2.2"))
 VAD_CONTINUE_RATIO = float(os.getenv("VAD_CONTINUE_RATIO", "1.45"))
 VAD_NOISE_ALPHA = float(os.getenv("VAD_NOISE_ALPHA", "0.97"))
@@ -40,8 +41,12 @@ VAD_MAX_SILENCE_FRAMES = int(os.getenv("VAD_MAX_SILENCE_FRAMES", "40"))
 VAD_PRE_ROLL_FRAMES = int(os.getenv("VAD_PRE_ROLL_FRAMES", "8"))
 VAD_MAX_ZCR = float(os.getenv("VAD_MAX_ZCR", "0.35"))
 VAD_NOISE_GATE_RATIO = float(os.getenv("VAD_NOISE_GATE_RATIO", "1.15"))
-MIN_SPEECH_SAMPLES = int(os.getenv("MIN_SPEECH_SAMPLES", "8000"))    # ~0.5s at 16kHz
+MIN_SPEECH_SAMPLES = int(os.getenv("MIN_SPEECH_SAMPLES", "10000"))   # ~0.62s at 16kHz
 MAX_SPEECH_SAMPLES = int(os.getenv("MAX_SPEECH_SAMPLES", "480000"))  # ~30s at 16kHz
+STT_COALESCE_WINDOW_SEC = float(os.getenv("STT_COALESCE_WINDOW_SEC", "0.8"))
+STT_MIN_REQUEST_INTERVAL_SEC = float(os.getenv("STT_MIN_REQUEST_INTERVAL_SEC", "1.1"))
+STT_DUP_SIMILARITY = float(os.getenv("STT_DUP_SIMILARITY", "0.92"))
+STT_DUP_WINDOW_SEC = float(os.getenv("STT_DUP_WINDOW_SEC", "8.0"))
 
 ALLOWED_KEYS = {
     "name", "age", "gender", "caste_category", "ration_card_type", "income", "occupation",
@@ -159,31 +164,18 @@ def _sanitize_sparse_updates(data: dict) -> dict:
     return sparse
 
 # ── Qwen3.5 Extraction Prompt Setup ───────────────────────────────────────────
-QWEN_SYSTEM = """
-You are a highly capable medical data extraction assistant.
-Your task is to extract ONLY patient information from the provided "New Transcript to Process" and output it as a valid JSON object.
-
-Allowed keys:
-"name", "age", "gender", "caste_category", "ration_card_type", "income", "occupation", "housing_type", "location", 
-"chief_complaint", "symptoms", "medical_history", "family_history", "allergies", "medications", 
-"tentative_doctor_diagnosis", "initial_llm_diagnosis", "vitals.temperature", "vitals.blood_pressure", "vitals.pulse", "vitals.spo2"
-
-Rules:
-1. ONLY extract information that is explicitly stated in the "New Transcript to Process".
-2. The "Previously Extracted Data" is provided for context only so you don't repeat yourself. Do NOT output data that has already been extracted unless it is updated or restated in the new transcript.
-3. If no new extractable patient data is found in the new transcript, you MUST output an empty JSON object: {}
-4. Standardize standard fields:
-   - gender: 'male', 'female', 'other'
-5. NEVER output empty strings, nulls, placeholders, or a full template/schema.
-6. Output ONLY sparse updates (only changed/new keys with non-empty values).
-7. OUTPUT NAKED JSON ONLY. No markdown, no backticks, no explanation.
-
-Example Output:
-{
-  "age": "21",
-  "gender": "male"
-}
-"""
+QWEN_SYSTEM = (
+    "Extract only NEW patient data from New Transcript. "
+    "Output one JSON object with only changed/non-empty keys from: "
+    "name,age,gender,caste_category,ration_card_type,income,occupation,housing_type,location,"
+    "chief_complaint,symptoms,medical_history,family_history,allergies,medications,"
+    "tentative_doctor_diagnosis,initial_llm_diagnosis,vitals.temperature,vitals.blood_pressure,"
+    "vitals.pulse,vitals.spo2. "
+    "Use Previous Extracted Data only to avoid repeats. "
+    "If no new data, output {}. "
+    "No nulls/empty strings/template/markdown/text. "
+    "Gender must be one of: male,female,other."
+)
 
 async def run_qwen_extraction(transcript: str, existing_context: dict) -> dict:
     if not transcript.strip():
@@ -265,12 +257,58 @@ def transcribe_groq_sync(audio_float32: np.ndarray) -> str:
         return ""
 
 
+def _normalize_transcript(text: str) -> str:
+    lowered = text.lower().strip()
+    lowered = re.sub(r"[^a-z0-9\s']", " ", lowered)
+    lowered = re.sub(r"\s+", " ", lowered).strip()
+    return lowered
+
+
+def _is_low_signal_transcript(normalized: str) -> bool:
+    if not normalized:
+        return True
+    tokens = normalized.split()
+    if len(tokens) <= 1:
+        return True
+    if len(tokens) >= 4:
+        unique_ratio = len(set(tokens)) / len(tokens)
+        if unique_ratio < 0.45:
+            return True
+    max_run = 1
+    run = 1
+    for i in range(1, len(tokens)):
+        if tokens[i] == tokens[i - 1]:
+            run += 1
+            if run > max_run:
+                max_run = run
+        else:
+            run = 1
+    if max_run >= 3:
+        return True
+    weak_tokens = {"yeah", "yes", "no", "you", "uh", "um", "hmm", "okay", "ok", "right"}
+    if len(tokens) <= 3 and all(tok in weak_tokens for tok in tokens):
+        return True
+    return False
+
+
+def _is_duplicate_transcript(normalized: str, last_norm: str, last_ts: float, now_ts: float) -> bool:
+    if not last_norm:
+        return False
+    if (now_ts - last_ts) > STT_DUP_WINDOW_SEC:
+        return False
+    if normalized == last_norm:
+        return True
+    sim = SequenceMatcher(a=normalized, b=last_norm).ratio()
+    return sim >= STT_DUP_SIMILARITY
+
+
 # ── WebSocket Endpoint ────────────────────────────────────────────────────────
 @app.websocket("/ws/process-audio")
 async def process_audio_ws(websocket: WebSocket):
     await websocket.accept()
     logger.info("[ML Node] Connection accepted")
     loop = asyncio.get_event_loop()
+    ws_active = True
 
     speech_active = False
     silence_frames = 0
@@ -283,7 +321,7 @@ async def process_audio_ws(websocket: WebSocket):
     extracted_state = {}
     full_transcript = ""
 
-    audio_queue = asyncio.Queue()
+    audio_queue = asyncio.Queue(maxsize=16)
 
     async def receiver():
         nonlocal speech_active, silence_frames, speech_chunks, speech_samples, noise_floor_rms
@@ -347,7 +385,8 @@ async def process_audio_ws(websocket: WebSocket):
 
                     if speech_chunks:
                         duration_sec = speech_samples / SAMPLE_RATE
-                        if speech_samples >= MIN_SPEECH_SAMPLES:
+                        min_flush_samples = max(2000, MIN_SPEECH_SAMPLES // 4)
+                        if speech_samples >= min_flush_samples:
                             to_process = np.concatenate(speech_chunks)
                             await audio_queue.put(to_process)
                             logger.info(
@@ -357,7 +396,7 @@ async def process_audio_ws(websocket: WebSocket):
                             )
                         else:
                             logger.info(
-                                "[VAD] Dropped short chunk: duration=%.2fs silence_frames=%d",
+                                "[VAD] Dropped tiny chunk: duration=%.2fs silence_frames=%d",
                                 duration_sec,
                                 silence_frames,
                             )
@@ -367,6 +406,7 @@ async def process_audio_ws(websocket: WebSocket):
                     speech_chunks = []
                     speech_samples = 0
             except WebSocketDisconnect:
+                ws_active = False
                 disconnect_min_samples = max(2000, MIN_SPEECH_SAMPLES // 2)
                 if speech_active and speech_samples >= disconnect_min_samples and speech_chunks:
                     await audio_queue.put(np.concatenate(speech_chunks))
@@ -379,34 +419,105 @@ async def process_audio_ws(websocket: WebSocket):
 
     async def stt_processor():
         nonlocal full_transcript
+        pending_audio = np.array([], dtype=np.float32)
+        last_stt_request_ts = 0.0
+        last_transcript_norm = ""
+        last_transcript_ts = 0.0
         while True:
             try:
+                saw_termination = False
                 to_process = await audio_queue.get()
                 if to_process is None:
-                    await llm_queue.put(None)
-                    break
+                    if pending_audio.size > 0:
+                        to_process = pending_audio.copy()
+                        pending_audio = np.array([], dtype=np.float32)
+                        saw_termination = True
+                    else:
+                        await llm_queue.put(None)
+                        break
+
+                if pending_audio.size > 0:
+                    to_process = np.concatenate((pending_audio, to_process))
+                    pending_audio = np.array([], dtype=np.float32)
+
+                # Coalesce nearby VAD chunks into a single STT request.
+                deadline = loop.time() + STT_COALESCE_WINDOW_SEC
+                while loop.time() < deadline and len(to_process) < MAX_SPEECH_SAMPLES:
+                    timeout = max(0.0, deadline - loop.time())
+                    if timeout == 0:
+                        break
+                    try:
+                        next_audio = await asyncio.wait_for(audio_queue.get(), timeout=timeout)
+                    except asyncio.TimeoutError:
+                        break
+
+                    if next_audio is None:
+                        saw_termination = True
+                        break
+                    to_process = np.concatenate((to_process, next_audio))
+
+                # Avoid noisy micro-transcriptions; carry forward until enough speech accumulates.
+                if len(to_process) < MIN_SPEECH_SAMPLES:
+                    pending_audio = to_process
+                    if saw_termination:
+                        await llm_queue.put(None)
+                        break
+                    continue
+
+                now = time.monotonic()
+                sleep_for = STT_MIN_REQUEST_INTERVAL_SEC - (now - last_stt_request_ts)
+                if sleep_for > 0:
+                    await asyncio.sleep(sleep_for)
 
                 # 1. Groq STT
+                last_stt_request_ts = time.monotonic()
                 transcript = await loop.run_in_executor(None, transcribe_groq_sync, to_process)
-                
+
                 if not transcript:
+                    logger.info("[STT] Empty transcript, skipped")
+                    if saw_termination:
+                        await llm_queue.put(None)
+                        break
                     continue
 
-                clean = transcript.lower().strip().rstrip('.,!?')
-                if clean in FILLER_ONLY or len(clean) <= 2:
+                clean = _normalize_transcript(transcript)
+                if clean in FILLER_ONLY:
+                    logger.info(f"[STT] Filler ignored: {transcript}")
+                    if saw_termination:
+                        await llm_queue.put(None)
+                        break
+                    continue
+                if _is_low_signal_transcript(clean):
+                    logger.info(f"[STT] Low-signal ignored: {transcript}")
+                    if saw_termination:
+                        await llm_queue.put(None)
+                        break
                     continue
 
+                now = time.monotonic()
+                if _is_duplicate_transcript(clean, last_transcript_norm, last_transcript_ts, now):
+                    logger.info(f"[STT] Duplicate ignored: {transcript}")
+                    if saw_termination:
+                        await llm_queue.put(None)
+                        break
+                    continue
+
+                last_transcript_norm = clean
+                last_transcript_ts = now
                 full_transcript += transcript + " "
                 logger.info(f"[STT] {transcript}")
 
                 # Send transcript to LLM processor
                 await llm_queue.put(transcript)
+                if saw_termination:
+                    await llm_queue.put(None)
+                    break
 
             except Exception as e:
                 logger.error(f"[stt_processor] Error: {e}")
 
     async def llm_processor():
-        nonlocal extracted_state
+        nonlocal extracted_state, ws_active
         MAX_BATCH_TRANSCRIPTS = 3
         while True:
             try:
@@ -454,11 +565,16 @@ async def process_audio_ws(websocket: WebSocket):
                         if changed:
                             # Send updates back to the bridge in the EXACT format Gemini provided
                             logger.info(f"[LLM] Emitting update: {field} -> {extracted_state[field]}")
-                            await websocket.send_json({
-                                "type": "update",
-                                "field": field,
-                                "value": extracted_state[field]
-                            })
+                            if ws_active:
+                                try:
+                                    await websocket.send_json({
+                                        "type": "update",
+                                        "field": field,
+                                        "value": extracted_state[field]
+                                    })
+                                except Exception:
+                                    ws_active = False
+                                    logger.info("[LLM] WebSocket closed while emitting update; stopping sends")
                 else:
                     logger.info("[LLM] No structured updates extracted from current chunk")
             except Exception as e:
